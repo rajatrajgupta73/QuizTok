@@ -27,7 +27,7 @@ def render() -> None:
     col_a, col_b = st.columns([1, 1], gap="large")
 
     with col_a:
-        st.markdown('<div class="qt-card"><b>🎭 Pick your avatar</b></div>', unsafe_allow_html=True)
+        st.markdown('<div class="qt-h3">🎭 Pick your avatar</div>', unsafe_allow_html=True)
         me = g["players"][nick]
         grid = st.columns(6)
         for i, av in enumerate(config.AVATARS):
@@ -37,21 +37,24 @@ def render() -> None:
                 st.rerun()
         team_note = f' · team <b style="color:#4db4ff">{me["team"]}</b>' if me["team"] else ""
         st.markdown(
-            f'<div class="qt-card" style="margin-top:10px">'
-            f'<span style="font-size:30px">{me["avatar"]}</span> <b>{nick}</b>{team_note} '
-            f'{ui.pill("READY", live_dot=True)}</div>', unsafe_allow_html=True)
+            f'<div class="qt-mestrip">'
+            f'<span class="av">{me["avatar"]}</span>'
+            f'<span><span class="name">{nick}</span><br>'
+            f'<span class="tag">You · ready to rumble{team_note}</span></span>'
+            f'<span class="ready">{ui.pill("READY", live_dot=True)}</span></div>',
+            unsafe_allow_html=True)
         if st.button("Leave game", type="secondary"):
             st.session_state.page = "login"
             st.rerun()
 
     with col_b:
-        st.markdown(f'<div class="qt-card"><b>👥 In the lobby</b> '
-                    f'{ui.pill(str(len(g["players"])) + " joined", live_dot=True)}</div>',
+        st.markdown(f'<div class="qt-h3">👥 In the lobby '
+                    f'<span class="count">{len(g["players"])}</span></div>',
                     unsafe_allow_html=True)
         ui.player_chips(g["players"])
-        st.markdown('<div class="qt-sub" style="text-align:center;margin-top:16px">'
-                    'Waiting for host to launch… ⏳<br>'
-                    '<span style="font-size:12px">Tip: answer <b style="color:#4db4ff">fast</b> — '
-                    'speed multiplies your points ⚡</span></div>', unsafe_allow_html=True)
+        ui.waiting_dots("Waiting for host to launch")
+        st.markdown('<div class="qt-sub" style="text-align:center;font-size:12px">'
+                    'Tip: answer <b style="color:#4db4ff">fast</b> — '
+                    'speed multiplies your points ⚡</div>', unsafe_allow_html=True)
 
     ui.autorefresh(1.5)

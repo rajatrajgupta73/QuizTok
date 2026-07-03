@@ -145,6 +145,10 @@ def _render_reveal(g: dict, q: dict, nick: str, is_controller: bool) -> None:
                         f'<div class="txt">{a["text"]}</div></div>', unsafe_allow_html=True)
 
     board = game.leaderboard(g)
+    st.markdown('<div style="font-family:\'Baloo 2\',cursive;font-size:42px;font-weight:800;'
+                'text-align:center;margin-top:10px">🏆 Leaderboard</div>'
+                f'<div class="qt-sub" style="text-align:center;margin-bottom:12px">after '
+                f'<b style="color:#4db4ff">Q{g["q_index"] + 1}</b></div>', unsafe_allow_html=True)
     ui.podium(board)
     ui.rank_rows(board, me=nick)
     teams = game.team_leaderboard(g)

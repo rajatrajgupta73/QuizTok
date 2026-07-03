@@ -52,41 +52,84 @@ def _lobby(g: dict, email: str) -> None:
     ui.autorefresh(1.5)
 
 
+def _game_flow(g: dict) -> None:
+    """Prototype-style timeline: done / current / upcoming questions."""
+    st.markdown('<div class="qt-h3" style="font-size:19px">🗺️ Game Flow</div>', unsafe_allow_html=True)
+    idx, total = g["q_index"], len(g["questions"])
+    rows = ['<div class="qt-tl done"><span class="dot2"></span><div>'
+            '<div class="txt">Lobby & warm-up</div>'
+            f'<div class="mt">{len(g["players"])} joined</div></div></div>']
+    if idx > 0:
+        rows.append('<div class="qt-tl done"><span class="dot2"></span><div>'
+                    f'<div class="txt">Q1 – Q{idx} · played</div>'
+                    '<div class="mt">scores locked in</div></div></div>')
+    rows.append('<div class="qt-tl now"><span class="dot2"></span><div>'
+                f'<div class="txt">Q{idx + 1} (you are here)</div>'
+                '<div class="mt">collecting answers…</div></div></div>')
+    if idx + 1 < total:
+        rows.append('<div class="qt-tl"><span class="dot2"></span><div>'
+                    f'<div class="txt">Q{idx + 2} – Q{total} · coming up</div>'
+                    '<div class="mt">keep the energy up ✨</div></div></div>')
+    rows.append('<div class="qt-tl"><span class="dot2"></span><div>'
+                '<div class="txt">Podium + Funky Awards 🎉</div>'
+                '<div class="mt">saved to Excel</div></div></div>')
+    st.markdown("".join(rows), unsafe_allow_html=True)
+
+
+def _hype(g: dict) -> None:
+    st.markdown('<div class="qt-h3" style="font-size:19px;margin-top:18px">💥 Hype the room</div>',
+                unsafe_allow_html=True)
+    cols = st.columns(6)
+    for i, em in enumerate(["🎉", "🔥", "😂", "🤯", "👏", "🚀"]):
+        if cols[i].button(em, key=f"hype{i}"):
+            st.toast(f"{em} {em} {em} hype sent to the room!")
+    st.markdown('<div class="qt-sub" style="font-size:12.5px;margin-top:4px">'
+                'Blasts the emoji on every player\'s screen</div>', unsafe_allow_html=True)
+
+
 def _live(g: dict, email: str) -> None:
     q = game.current_q(g)
     tl = game.time_left(g)
     phase = "VOTING 🗳️" if g["status"] == "VOTING" else \
         ("SUBJECTIVE ✍️" if q["type"] == "subjective" else "MCQ ⚡")
-    st.markdown(f'<div class="qt-cat">● LIVE · Q{g["q_index"] + 1} OF {len(g["questions"])} · '
-                f'{phase} · {int(tl)}s LEFT</div>', unsafe_allow_html=True)
-    ui.timer_ring(tl, config.VOTING_TIMER_SEC if g["status"] == "VOTING" else q["timer"])
-    st.markdown(f'<div class="qt-question">{q["question"]}</div>', unsafe_allow_html=True)
 
-    humans = [n for n, p in g["players"].items() if not p["is_bot"]]
-    if g["status"] == "QUESTION":
-        done = sum(1 for n in humans if game.has_answered(g, n))
-        bots_done = sum(1 for n, p in g["players"].items()
-                        if p["is_bot"] and game.has_answered(g, n))
-        st.markdown(
-            f'<div class="qt-sub" style="text-align:center">'
-            f'<b style="color:#4db4ff">{done}/{len(humans)}</b> humans answered · '
-            f'{bots_done} bots in 🤖</div>', unsafe_allow_html=True)
-        st.progress(done / max(1, len(humans)))
-        if st.button("⏭️ End answering now", key="red_skip", use_container_width=True):
-            game.force_reveal(email)
-            st.rerun()
-    else:  # VOTING
-        voted = sum(1 for n in humans if game.has_voted(g, n))
-        st.markdown(f'<div class="qt-sub" style="text-align:center">'
-                    f'<b style="color:#4db4ff">{voted}/{len(humans)}</b> humans voted</div>',
-                    unsafe_allow_html=True)
-        for a in sorted(game.current_answers(g), key=lambda x: -x["votes"]):
-            st.markdown(f'<div class="qt-vote"><span class="cnt">❤️ {a["votes"]}</span>'
-                        f'<div class="who">{a["avatar"]} {a["name"]}</div>'
-                        f'<div class="txt">{a["text"]}</div></div>', unsafe_allow_html=True)
-        if st.button("⏭️ Close voting now", key="red_endvote", use_container_width=True):
-            game.force_end_voting(email)
-            st.rerun()
+    stage, side = st.columns([1.5, 1], gap="medium")
+
+    with stage:
+        st.markdown(f'<div class="qt-now">● LIVE · QUESTION {g["q_index"] + 1} OF '
+                    f'{len(g["questions"])} · {phase} · {int(tl)}s LEFT</div>', unsafe_allow_html=True)
+        ui.timer_ring(tl, config.VOTING_TIMER_SEC if g["status"] == "VOTING" else q["timer"])
+        st.markdown(f'<div class="qt-question">{q["question"]}</div>', unsafe_allow_html=True)
+
+        humans = [n for n, p in g["players"].items() if not p["is_bot"]]
+        if g["status"] == "QUESTION":
+            done = sum(1 for n in humans if game.has_answered(g, n))
+            bots_done = sum(1 for n, p in g["players"].items()
+                            if p["is_bot"] and game.has_answered(g, n))
+            st.markdown(
+                f'<div class="qt-sub" style="text-align:center">'
+                f'<b style="color:#4db4ff">{done}/{len(humans)}</b> humans answered · '
+                f'{bots_done} bots in 🤖</div>', unsafe_allow_html=True)
+            st.progress(done / max(1, len(humans)))
+            if st.button("⏭️ End answering now", key="red_skip", use_container_width=True):
+                game.force_reveal(email)
+                st.rerun()
+        else:  # VOTING
+            voted = sum(1 for n in humans if game.has_voted(g, n))
+            st.markdown(f'<div class="qt-sub" style="text-align:center">'
+                        f'<b style="color:#4db4ff">{voted}/{len(humans)}</b> humans voted</div>',
+                        unsafe_allow_html=True)
+            for a in sorted(game.current_answers(g), key=lambda x: -x["votes"]):
+                st.markdown(f'<div class="qt-vote"><span class="cnt">❤️ {a["votes"]}</span>'
+                            f'<div class="who">{a["avatar"]} {a["name"]}</div>'
+                            f'<div class="txt">{a["text"]}</div></div>', unsafe_allow_html=True)
+            if st.button("⏭️ Close voting now", key="red_endvote", use_container_width=True):
+                game.force_end_voting(email)
+                st.rerun()
+
+    with side:
+        _game_flow(g)
+        _hype(g)
 
     ui.autorefresh(1.0)
 

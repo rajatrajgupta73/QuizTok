@@ -25,13 +25,25 @@ def render() -> None:
     if champ:
         st.markdown(
             f'<div style="text-align:center" class="qt-rise">'
-            f'<div style="font-size:84px;animation:qtBounce 2.4s ease-in-out infinite">🏆</div>'
-            f'<div class="qt-h1" style="background:linear-gradient(92deg,#ffd76e,#ff9d2e,#ff5d73);'
+            f'<div style="font-size:110px;animation:qtBounce 2.6s ease-in-out infinite;'
+            f'filter:drop-shadow(0 20px 50px rgba(255,194,51,.45))">🏆</div>'
+            f'<div style="font-family:\'Baloo 2\',cursive;font-size:56px;font-weight:800;line-height:1.1;'
+            f'background:linear-gradient(92deg,#ffd76e,#ff9d2e,#ff5d73);'
             f'-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">CHAMPION!</div>'
             f'<div style="font-size:22px;font-weight:700;margin-top:8px">{champ["avatar"]} {champ["name"]} takes the crown</div>'
             f'<div class="qt-sub" style="font-size:16px"><b style="color:#ffc233">{champ["score"]:,} points</b> · '
             f'best streak 🔥{champ["best_streak"]} · {champ["votes_received"]} votes received</div></div>',
             unsafe_allow_html=True)
+
+    # ---- stats strip (players · accuracy · fastest answer) ----
+    mcq = [a for p in g["players"].values() for a in p["answers"] if a["correct"] is not None]
+    correct = [a for a in mcq if a["correct"]]
+    acc = f'{round(100 * len(correct) / len(mcq))}%' if mcq else "—"
+    fastest = f'{min(a["time_taken"] for a in correct):.1f}s' if correct else "—"
+    c1, c2, c3 = st.columns(3)
+    ui.kpi_card(c1, str(len(g["players"])), "PLAYERS BATTLED")
+    ui.kpi_card(c2, acc, "AVG ACCURACY", tone="gold")
+    ui.kpi_card(c3, fastest, "FASTEST ANSWER", tone="teal")
 
     ui.podium(board)
     ui.rank_rows(board, me=nick)
@@ -62,3 +74,7 @@ def render() -> None:
         if c3.button("Command Center 🎛️", key="red_cc", use_container_width=True):
             st.session_state.page = "admin"
             st.rerun()
+
+    st.markdown('<div class="qt-sub" style="text-align:center;margin-top:22px;font-size:12.5px">'
+                'Results auto-saved to Excel · <b style="color:#4db4ff">QuizTok</b> '
+                'for Citi Team Fun Fridays</div>', unsafe_allow_html=True)

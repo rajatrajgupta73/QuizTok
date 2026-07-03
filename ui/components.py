@@ -105,8 +105,9 @@ def timer_ring(seconds_left: float, total: int) -> None:
 
 
 def question_text(category: str, text: str) -> None:
-    st.markdown(f'<div class="qt-cat">{category}</div>'
-                f'<div class="qt-question">{text}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="qt-card qt-qcard qt-rise"><div class="qt-cat">{category}</div>'
+                f'<div class="qt-question" style="margin-bottom:0">{text}</div></div>',
+                unsafe_allow_html=True)
 
 
 def verdict(good: bool, title: str, sub: str) -> None:
@@ -190,9 +191,16 @@ def awards_strip(awards: dict) -> None:
     st.markdown("".join(chips), unsafe_allow_html=True)
 
 
-def kpi_card(col, number: str, label: str) -> None:
-    col.markdown(f'<div class="qt-kpi"><div class="n">{number}</div><div class="l">{label}</div></div>',
-                 unsafe_allow_html=True)
+def kpi_card(col, number: str, label: str, spark: str = "", tone: str = "") -> None:
+    sp = f'<span class="spark">{spark}</span>' if spark else ""
+    col.markdown(f'<div class="qt-kpi {tone}"><div class="n">{number}</div>'
+                 f'<div class="l">{label}</div>{sp}</div>', unsafe_allow_html=True)
+
+
+def waiting_dots(text: str) -> None:
+    st.markdown(f'<div class="qt-sub" style="text-align:center;margin-top:16px">{text}'
+                '<div class="qt-dots"><span>●</span><span>●</span><span>●</span></div></div>',
+                unsafe_allow_html=True)
 
 
 def autorefresh(seconds: float = 1.0) -> None:
