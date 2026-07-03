@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizTok · Live Round</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .game { max-width: 1020px; margin: 0 auto; padding: 26px 24px 50px; }
+
+  /* HUD */
+  .hud { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; flex-wrap: wrap; }
+  .hud .qno { font-family: 'Baloo 2', cursive; font-size: 20px; font-weight: 800; color: var(--citi-sky); }
+  .progress { flex: 1; height: 12px; background: rgba(0,0,0,0.35); border-radius: 99px; overflow: hidden; min-width: 140px; }
+  .progress .fill {
+    height: 100%; width: 30%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--citi-blue), var(--citi-sky));
+    transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+    box-shadow: 0 0 14px rgba(77,180,255,0.6);
+  }
+  .streak {
+    display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 17px;
+    background: linear-gradient(135deg, rgba(255,100,40,0.25), rgba(255,60,60,0.15));
+    border: 1px solid rgba(255,140,60,0.4); padding: 8px 18px; border-radius: 999px;
+  }
+  .streak .flame { font-size: 22px; animation: bounce 1s ease-in-out infinite; }
+  .score-pill { font-family: 'Baloo 2', cursive; font-size: 20px; font-weight: 800; background: var(--glass-strong); border: 1px solid var(--stroke); padding: 8px 20px; border-radius: 999px; }
+  .score-pill b { color: var(--gold); }
+
+  /* question card + timer */
+  .qcard { padding: 40px 44px; text-align: center; position: relative; margin-bottom: 26px; }
+  .qcard .qtext { font-size: 30px; font-weight: 700; line-height: 1.4; max-width: 760px; margin: 0 auto; }
+  .qcard .cat { font-size: 12.5px; letter-spacing: 2.5px; color: var(--citi-sky); font-weight: 700; margin-bottom: 14px; }
+
+  .timer-wrap { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); }
+  .timer {
+    width: 84px; height: 84px; border-radius: 50%; position: relative;
+    background: var(--bg-mid); box-shadow: var(--shadow); border: 1px solid var(--stroke);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .timer svg { position: absolute; inset: -4px; transform: rotate(-90deg); }
+  .timer circle { fill: none; stroke-width: 7; stroke-linecap: round; }
+  .timer .track { stroke: rgba(255,255,255,0.1); }
+  .timer .arc { stroke: var(--citi-sky); stroke-dasharray: 289; transition: stroke-dashoffset 1s linear, stroke 0.4s; }
+  .timer .num { font-family: 'Baloo 2', cursive; font-size: 32px; font-weight: 800; }
+  .timer.danger .arc { stroke: var(--citi-red); }
+  .timer.danger { animation: shake 0.5s infinite; }
+  .timer.danger .num { color: var(--citi-red); }
+
+  /* answers */
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 700px) { .answers { grid-template-columns: 1fr; } }
+  .ans {
+    display: flex; align-items: center; gap: 18px; text-align: left;
+    padding: 24px 26px; border-radius: 20px; border: 2px solid transparent; cursor: pointer;
+    font-family: 'Poppins', sans-serif; font-size: 19px; font-weight: 700; color: #fff;
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), filter 0.2s, opacity 0.3s;
+    animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .ans:nth-child(1) { background: linear-gradient(135deg, #0088ce, #005a9e); animation-delay: 0.05s; }
+  .ans:nth-child(2) { background: linear-gradient(135deg, #e21836, #a80f26); animation-delay: 0.12s; }
+  .ans:nth-child(3) { background: linear-gradient(135deg, #00c9a7, #00806a); animation-delay: 0.19s; }
+  .ans:nth-child(4) { background: linear-gradient(135deg, #ff9d2e, #d97706); animation-delay: 0.26s; }
+  .ans:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.15); }
+  .ans .shape {
+    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+    background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .ans.correct { animation: correctPulse 0.6s cubic-bezier(0.34,1.56,0.64,1); border-color: #fff; box-shadow: 0 0 40px rgba(0,201,167,0.7); }
+  .ans.wrong { animation: shake 0.45s; opacity: 0.45; filter: saturate(0.3); }
+  .ans.faded { opacity: 0.25; filter: saturate(0.2); pointer-events: none; }
+  @keyframes correctPulse { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+  /* floating +points */
+  .points-pop {
+    position: fixed; font-family: 'Baloo 2', cursive; font-size: 46px; font-weight: 800;
+    color: var(--gold); text-shadow: 0 4px 20px rgba(255,194,51,0.6);
+    pointer-events: none; z-index: 100; animation: popUp 1.2s cubic-bezier(0.22,1,0.36,1) forwards;
+  }
+  @keyframes popUp {
+    0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+    25% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-110px) scale(1); }
+  }
+
+  /* verdict banner */
+  .verdict {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(4,10,22,0.72); backdrop-filter: blur(8px); z-index: 90;
+  }
+  .verdict .box { text-align: center; animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+  .verdict .big { font-family: 'Baloo 2', cursive; font-size: 68px; font-weight: 800; }
+  .verdict .big.good { color: var(--teal); text-shadow: 0 0 50px rgba(0,201,167,0.6); }
+  .verdict .big.bad { color: var(--citi-red); text-shadow: 0 0 50px rgba(226,24,54,0.5); }
+  .verdict .sub { color: var(--text-dim); font-size: 17px; margin: 10px 0 26px; }
+  .verdict .sub b { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="orbs"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
+<div class="topbar">
+  <div class="left">
+    <span class="brand">QuizTok</span>
+    <div class="divider"></div>
+    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="citi"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
+  </div>
+  <div class="right">
+    <span class="pill">🦊 <span id="hudNick">QuizNinja</span></span>
+    <span class="pill"><span class="dot"></span> LIVE</span>
+  </div>
+</div>
+
+<div class="game">
+  <div class="hud rise">
+    <span class="qno" id="qno">Q3 / 10</span>
+    <div class="progress"><div class="fill" id="fill"></div></div>
+    <span class="streak"><span class="flame">🔥</span> <span id="streak">2</span> streak</span>
+    <span class="score-pill">⭐ <b id="score">1,840</b></span>
+  </div>
+
+  <div class="card qcard rise d1">
+    <div class="timer-wrap">
+      <div class="timer" id="timer">
+        <svg width="92" height="92"><circle class="track" cx="46" cy="46" r="40"/><circle class="arc" id="arc" cx="46" cy="46" r="40"/></svg>
+        <span class="num" id="tnum">20</span>
+      </div>
+    </div>
+    <div class="cat">CITI TRIVIA · 1000 PTS · SPEED BONUS ON</div>
+    <div class="qtext" id="qtext">In which year was Citi (then City Bank of New York) founded?</div>
+  </div>
+
+  <div class="answers" id="answers">
+    <button class="ans" data-ok="0"><span class="shape">▲</span> 1789</button>
+    <button class="ans" data-ok="1"><span class="shape">◆</span> 1812</button>
+    <button class="ans" data-ok="0"><span class="shape">●</span> 1865</button>
+    <button class="ans" data-ok="0"><span class="shape">■</span> 1901</button>
+  </div>
+</div>
+
+<!-- verdict overlay -->
+<div class="verdict" id="verdict">
+  <div class="box">
+    <div class="big" id="vBig">NAILED IT! 🎯</div>
+    <div class="sub" id="vSub">+<b>1,240 pts</b> · speed bonus ×1.24 · streak 🔥3</div>
+    <a class="btn gold big" href="leaderboard.html">See Leaderboard 🏆</a>
+  </div>
+</div>
+
+<script>
+  document.getElementById('hudNick').textContent = sessionStorage.getItem('qt_nick') || 'QuizNinja';
+
+  // ----- countdown timer -----
+  let t = 20; const total = 20;
+  const arc = document.getElementById('arc'), tnum = document.getElementById('tnum'), timerEl = document.getElementById('timer');
+  const CIRC = 2 * Math.PI * 40;
+  arc.style.strokeDasharray = CIRC;
+  let answered = false;
+  const tick = setInterval(() => {
+    t--;
+    tnum.textContent = t;
+    arc.style.strokeDashoffset = CIRC * (1 - t / total);
+    if (t <= 5) timerEl.classList.add('danger');
+    if (t <= 0) { clearInterval(tick); if (!answered) reveal(null); }
+  }, 1000);
+
+  // progress bar intro
+  setTimeout(() => document.getElementById('fill').style.width = '30%', 300);
+
+  // ----- answering -----
+  const answers = [...document.querySelectorAll('.ans')];
+  answers.forEach(a => a.addEventListener('click', () => { if (!answered) reveal(a); }));
+
+  function reveal(picked) {
+    answered = true; clearInterval(tick);
+    const correct = answers.find(a => a.dataset.ok === '1');
+    answers.forEach(a => { if (a !== correct && a !== picked) a.classList.add('faded'); });
+    correct.classList.add('correct');
+
+    const good = picked === correct;
+    if (picked && !good) picked.classList.add('wrong');
+
+    if (good) {
+      const pts = Math.round(1000 * (1 + t / total));
+      popPoints('+' + pts.toLocaleString(), picked);
+      const s = document.getElementById('score');
+      s.textContent = (1840 + pts).toLocaleString();
+      document.getElementById('streak').textContent = '3';
+      setVerdict('NAILED IT! 🎯', `+<b>${pts.toLocaleString()} pts</b> · speed bonus ×${(1 + t/total).toFixed(2)} · streak 🔥3`, true);
+    } else {
+      setVerdict(picked ? 'OOPS! 💥' : 'TIME\'S UP! ⏰', 'It was <b>1812</b> — streak reset, comeback time!', false);
+    }
+    setTimeout(() => document.getElementById('verdict').style.display = 'flex', 1400);
+  }
+
+  function setVerdict(title, sub, good) {
+    const b = document.getElementById('vBig');
+    b.textContent = title;
+    b.className = 'big ' + (good ? 'good' : 'bad');
+    document.getElementById('vSub').innerHTML = sub;
+  }
+
+  function popPoints(txt, el) {
+    const r = el.getBoundingClientRect();
+    const p = document.createElement('div');
+    p.className = 'points-pop'; p.textContent = txt;
+    p.style.left = (r.left + r.width / 2 - 60) + 'px';
+    p.style.top = (r.top - 10) + 'px';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1300);
+  }
+</script>
+<script src='ink.js'></script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizTok · Live Host Controls</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .host { max-width: 1120px; margin: 0 auto; padding: 28px 24px 50px; }
+  .host-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 960px) { .host-grid { grid-template-columns: 1fr; } }
+
+  .stage { padding: 30px; text-align: center; }
+  .stage .now { font-size: 12px; letter-spacing: 3px; color: #ff7b8d; font-weight: 700; margin-bottom: 12px; animation: pulseDot 1.6s infinite; }
+  .stage .q { font-size: 24px; font-weight: 700; line-height: 1.45; margin-bottom: 26px; }
+
+  /* live answer distribution bars */
+  .bars { display: flex; align-items: flex-end; justify-content: center; gap: 26px; height: 210px; margin-bottom: 10px; }
+  .barcol { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 90px; height: 100%; justify-content: flex-end; }
+  .bar {
+    width: 100%; border-radius: 12px 12px 6px 6px; position: relative;
+    transition: height 0.7s cubic-bezier(0.22,1,0.36,1);
+    display: flex; align-items: flex-start; justify-content: center; padding-top: 8px;
+    font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 18px;
+  }
+  .barcol:nth-child(1) .bar { background: linear-gradient(180deg, #4db4ff, #0088ce); }
+  .barcol:nth-child(2) .bar { background: linear-gradient(180deg, #ff5d73, #e21836); box-shadow: 0 0 26px rgba(226,24,54,0.4); }
+  .barcol:nth-child(3) .bar { background: linear-gradient(180deg, #3fe0c5, #00c9a7); }
+  .barcol:nth-child(4) .bar { background: linear-gradient(180deg, #ffc46e, #ff9d2e); }
+  .barcol .sh { font-size: 20px; }
+  .barcol .lb { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+  .barcol.win .lb { color: #fff; }
+  .barcol.win .lb::after { content: ' ✓'; color: var(--teal); font-weight: 800; }
+
+  .answered-line { color: var(--text-dim); font-size: 14px; margin-bottom: 24px; }
+  .answered-line b { color: var(--citi-sky); font-size: 17px; }
+
+  .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* right column */
+  .panel { padding: 24px; margin-bottom: 22px; }
+  .panel h3 { font-family: 'Baloo 2', cursive; font-size: 19px; margin-bottom: 16px; }
+
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl {
+    display: flex; gap: 14px; padding: 10px 0; align-items: flex-start; position: relative;
+  }
+  .tl .dot2 {
+    width: 14px; height: 14px; border-radius: 50%; margin-top: 4px; flex-shrink: 0;
+    background: var(--stroke); position: relative; z-index: 1;
+  }
+  .tl.done .dot2 { background: var(--teal); }
+  .tl.now .dot2 { background: var(--citi-red); animation: pulseDot 1.4s infinite; }
+  .tl:not(:last-child)::before {
+    content: ''; position: absolute; left: 6px; top: 22px; bottom: -8px; width: 2px;
+    background: var(--stroke);
+  }
+  .tl .txt { font-size: 14px; font-weight: 600; }
+  .tl .mt { font-size: 12px; color: var(--text-dim); font-weight: 400; }
+  .tl.now .txt { color: #ff7b8d; }
+
+  .reactions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .reaction {
+    font-size: 24px; padding: 10px 16px; border-radius: 14px; cursor: pointer;
+    background: rgba(0,0,0,0.25); border: 1px solid var(--stroke);
+    transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .reaction:hover { transform: scale(1.25) rotate(-8deg); }
+
+  .fly { position: fixed; font-size: 34px; pointer-events: none; z-index: 99; animation: flyUp 1.6s ease-out forwards; }
+  @keyframes flyUp {
+    0% { opacity: 1; transform: translateY(0) scale(0.7) rotate(0); }
+    100% { opacity: 0; transform: translateY(-260px) scale(1.5) rotate(24deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="orbs"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
+<div class="topbar">
+  <div class="left">
+    <span class="brand">QuizTok</span>
+    <div class="divider"></div>
+    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="citi"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
+    <span class="pill" style="background:rgba(226,24,54,0.15);border-color:rgba(226,24,54,0.4);color:#ff7b8d;">HOST MODE</span>
+  </div>
+  <div class="right">
+    <span class="pill">PIN <b style="color:var(--gold)">&nbsp;482913</b></span>
+    <span class="pill"><span class="dot"></span> 14 players</span>
+    <a class="btn ghost small" href="admin.html">Dashboard</a>
+  </div>
+</div>
+
+<div class="host">
+  <div class="host-grid">
+
+    <!-- STAGE -->
+    <div>
+      <div class="card stage rise">
+        <div class="now">● LIVE · QUESTION 3 OF 10 · 00:07 LEFT</div>
+        <div class="q">In which year was Citi (then City Bank of New York) founded?</div>
+
+        <div class="bars">
+          <div class="barcol"><div class="bar" data-h="18%" ><span>1</span></div><span class="sh">▲</span><span class="lb">1789</span></div>
+          <div class="barcol win"><div class="bar" data-h="82%"><span>9</span></div><span class="sh">◆</span><span class="lb">1812</span></div>
+          <div class="barcol"><div class="bar" data-h="28%"><span>3</span></div><span class="sh">●</span><span class="lb">1865</span></div>
+          <div class="barcol"><div class="bar" data-h="10%"><span>1</span></div><span class="sh">■</span><span class="lb">1901</span></div>
+        </div>
+        <div class="answered-line"><b>14 / 14</b> answered · avg response 6.2s ⚡</div>
+
+        <div class="controls">
+          <a class="btn gold" href="leaderboard.html">Show Leaderboard 🏆</a>
+          <a class="btn" href="quiz.html">Next Question ▶</a>
+          <button class="btn ghost" onclick="alert('Timer paused (demo)')">⏸ Pause</button>
+          <a class="btn red" href="results.html">End Game 🏁</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDE -->
+    <div>
+      <div class="card panel rise d2">
+        <h3>🗺️ Game Flow</h3>
+        <div class="timeline">
+          <div class="tl done"><span class="dot2"></span><div><div class="txt">Lobby & warm-up GIFs</div><div class="mt">14 joined · 4:31 PM</div></div></div>
+          <div class="tl done"><span class="dot2"></span><div><div class="txt">Q1 – Q2 · Icebreakers</div><div class="mt">avg 84% correct</div></div></div>
+          <div class="tl now"><span class="dot2"></span><div><div class="txt">Q3 · Citi Trivia (you are here)</div><div class="mt">collecting answers…</div></div></div>
+          <div class="tl"><span class="dot2"></span><div><div class="txt">Q4 – Q7 · GIF & Emoji rounds</div><div class="mt">double points on Q6 ✨</div></div></div>
+          <div class="tl"><span class="dot2"></span><div><div class="txt">Q8 – Q10 · Rapid fire ⚡</div><div class="mt">10s timers</div></div></div>
+          <div class="tl"><span class="dot2"></span><div><div class="txt">Podium + Funky Awards 🎉</div><div class="mt">auto-share to team channel</div></div></div>
+        </div>
+      </div>
+
+      <div class="card panel rise d3">
+        <h3>💥 Hype the room</h3>
+        <div class="reactions">
+          <span class="reaction" onclick="fly(this,'🎉')">🎉</span>
+          <span class="reaction" onclick="fly(this,'🔥')">🔥</span>
+          <span class="reaction" onclick="fly(this,'😂')">😂</span>
+          <span class="reaction" onclick="fly(this,'🤯')">🤯</span>
+          <span class="reaction" onclick="fly(this,'👏')">👏</span>
+          <span class="reaction" onclick="fly(this,'🚀')">🚀</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--text-dim);margin-top:12px;">Blasts the emoji on every player's screen</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // animate bars in
+  setTimeout(() => {
+    document.querySelectorAll('.bar').forEach(b => b.style.height = b.dataset.h);
+  }, 400);
+  document.querySelectorAll('.bar').forEach(b => b.style.height = '4%');
+
+  function fly(el, em) {
+    const r = el.getBoundingClientRect();
+    for (let i = 0; i < 5; i++) {
+      const s = document.createElement('span');
+      s.className = 'fly'; s.textContent = em;
+      s.style.left = (r.left + Math.random() * 40 - 10) + 'px';
+      s.style.top = r.top + 'px';
+      s.style.animationDelay = (i * 0.1) + 's';
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 1800);
+    }
+  }
+</script>
+<script src='ink.js'></script>
+</body>
+</html>

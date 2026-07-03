@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizTok · Lobby</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .lobby-wrap { max-width: 1080px; margin: 0 auto; padding: 34px 24px 60px; }
+
+  .pin-banner {
+    text-align: center; margin-bottom: 34px; padding: 30px 20px 26px; position: relative; overflow: hidden;
+  }
+  .pin-banner .label { font-size: 13px; letter-spacing: 3px; color: var(--text-dim); font-weight: 600; }
+  .pin-banner .pin {
+    font-family: 'Baloo 2', cursive; font-size: 72px; font-weight: 800; letter-spacing: 14px;
+    background: linear-gradient(92deg, #4db4ff, #9be1ff, #ffd76e);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    animation: glowPulse 2.4s ease-in-out infinite; border-radius: 20px; display: inline-block; padding: 0 24px;
+  }
+  .pin-banner .joinline { color: var(--text-dim); font-size: 14.5px; }
+  .pin-banner .joinline b { color: var(--citi-sky); }
+
+  .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 26px; align-items: start; }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel { padding: 28px; }
+  .panel h3 { font-family: 'Baloo 2', cursive; font-size: 22px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  .panel h3 .count { font-size: 14px; background: var(--citi-red); color: #fff; border-radius: 999px; padding: 3px 12px; animation: pop 0.4s both; }
+
+  /* avatar picker */
+  .avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .avatar-pick {
+    aspect-ratio: 1; border-radius: 20px; font-size: 34px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.25); border: 2px solid var(--stroke);
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s, background 0.2s;
+  }
+  .avatar-pick:hover { transform: translateY(-5px) rotate(-6deg) scale(1.08); }
+  .avatar-pick.sel {
+    border-color: var(--citi-sky); background: rgba(0,136,206,0.25);
+    animation: wiggle 0.5s; box-shadow: 0 0 24px rgba(77,180,255,0.4);
+  }
+
+  .me-strip {
+    margin-top: 22px; display: flex; align-items: center; gap: 16px;
+    background: linear-gradient(135deg, rgba(0,136,206,0.22), rgba(0,59,112,0.3));
+    border: 1px solid rgba(77,180,255,0.35); border-radius: 18px; padding: 14px 20px;
+  }
+  .me-strip .avatar { font-size: 32px; width: 62px; height: 62px; animation: bounce 2.6s ease-in-out infinite; }
+  .me-strip .name { font-weight: 700; font-size: 18px; }
+  .me-strip .tag { font-size: 12.5px; color: var(--text-dim); }
+  .me-strip .ready { margin-left: auto; }
+
+  /* players joining */
+  .players { display: flex; flex-wrap: wrap; gap: 12px; min-height: 130px; }
+  .player-chip {
+    display: flex; align-items: center; gap: 10px; padding: 9px 18px 9px 10px;
+    background: var(--glass-strong); border: 1px solid var(--stroke); border-radius: 999px;
+    font-weight: 600; font-size: 14.5px;
+    animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .player-chip .em { font-size: 22px; width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; }
+
+  .waiting {
+    margin-top: 26px; text-align: center; color: var(--text-dim); font-size: 15px;
+  }
+  .dots span { animation: bounce 1.2s ease-in-out infinite; display: inline-block; font-size: 24px; color: var(--citi-sky); }
+  .dots span:nth-child(2) { animation-delay: 0.15s; } .dots span:nth-child(3) { animation-delay: 0.3s; }
+
+  .rocket-btn { width: 100%; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="orbs"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
+<div class="topbar">
+  <div class="left">
+    <span class="brand">QuizTok</span>
+    <div class="divider"></div>
+    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="citi"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
+  </div>
+  <div class="right">
+    <span class="pill"><span class="dot"></span> Lobby open</span>
+    <a class="btn ghost small" href="index.html">Leave</a>
+  </div>
+</div>
+
+<div class="lobby-wrap">
+
+  <div class="card pin-banner rise">
+    <div class="label">GAME PIN</div>
+    <div class="pin" id="pinShow">482913</div>
+    <div class="joinline">Join at <b>quiztok.citi</b> · Friday Team Fun · <b>“Guess the GIF + Citi Trivia”</b></div>
+  </div>
+
+  <div class="grid">
+    <div class="card panel rise d2">
+      <h3>🎭 Pick your avatar</h3>
+      <div class="avatars" id="avatars"></div>
+      <div class="me-strip">
+        <div class="avatar" id="meAvatar">🦊</div>
+        <div>
+          <div class="name" id="meName">QuizNinja</div>
+          <div class="tag">You · ready to rumble</div>
+        </div>
+        <span class="pill ready"><span class="dot"></span> READY</span>
+      </div>
+      <button class="btn big rocket-btn" onclick="window.location.href='quiz.html'">I'm Ready — Start Demo Round 🎬</button>
+    </div>
+
+    <div class="card panel rise d3">
+      <h3>👥 In the lobby <span class="count" id="count">1</span></h3>
+      <div class="players" id="players"></div>
+      <div class="waiting">
+        Waiting for host to launch
+        <div class="dots"><span>●</span><span>●</span><span>●</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-strip">Tip: score more by answering <b>fast</b> — speed multiplies your points ⚡</div>
+
+<script>
+  const emojis = ['🦊','🐼','🦁','🐸','🦄','🐙','🐯','🦉','🐨','🐵','🦖','🐳'];
+  const av = document.getElementById('avatars');
+  emojis.forEach((e, i) => {
+    const d = document.createElement('div');
+    d.className = 'avatar-pick' + (i === 0 ? ' sel' : '');
+    d.textContent = e;
+    d.onclick = () => {
+      document.querySelectorAll('.avatar-pick').forEach(x => x.classList.remove('sel'));
+      d.classList.add('sel');
+      document.getElementById('meAvatar').textContent = e;
+      sessionStorage.setItem('qt_avatar', e);
+    };
+    av.appendChild(d);
+  });
+
+  const nick = sessionStorage.getItem('qt_nick') || 'QuizNinja';
+  document.getElementById('meName').textContent = nick;
+  const pin = sessionStorage.getItem('qt_pin');
+  if (pin) document.getElementById('pinShow').textContent = pin.padEnd(6, '4');
+
+  // simulate teammates joining live
+  const roster = [
+    ['🐼','Priya P.'],['🦁','Arjun_Roars'],['🐸','KermitTheDev'],['🦄','Sneha ✨'],
+    ['🐙','Octo-Ops'],['🦉','NightOwl_Sam'],['🐯','TigerTeam_Vik'],['🐨','ChillKarthik'],
+    ['🦖','RexOfRisk'],['🐳','MobyDeepak'],['🐵','CodeMonkey_Al'],['🐹','HamsterOps']
+  ];
+  const players = document.getElementById('players');
+  const count = document.getElementById('count');
+  function addPlayer(i) {
+    if (i >= roster.length) return;
+    const [em, name] = roster[i];
+    const chip = document.createElement('div');
+    chip.className = 'player-chip';
+    chip.innerHTML = `<span class="em">${em}</span> ${name}`;
+    players.appendChild(chip);
+    count.textContent = i + 2; // +you
+    count.style.animation = 'none'; void count.offsetWidth; count.style.animation = '';
+    setTimeout(() => addPlayer(i + 1), 500 + Math.random() * 1200);
+  }
+  setTimeout(() => addPlayer(0), 700);
+</script>
+<script src='ink.js'></script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizTok · Admin Command Center</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .shell { display: flex; min-height: calc(100vh - 77px); }
+
+  /* sidebar */
+  .side {
+    width: 240px; flex-shrink: 0; padding: 26px 16px;
+    border-right: 1px solid var(--stroke); backdrop-filter: blur(10px);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .side a {
+    display: flex; align-items: center; gap: 12px; text-decoration: none;
+    color: var(--text-dim); font-weight: 600; font-size: 14.5px;
+    padding: 13px 16px; border-radius: 14px; transition: all 0.2s;
+  }
+  .side a:hover { background: var(--glass-strong); color: var(--text); transform: translateX(4px); }
+  .side a.on {
+    background: linear-gradient(135deg, rgba(226,24,54,0.25), rgba(226,24,54,0.1));
+    color: #fff; border: 1px solid rgba(226,24,54,0.35);
+  }
+  .side .ico { font-size: 19px; }
+  .side .spacer { flex: 1; }
+
+  .main { flex: 1; padding: 30px 34px 50px; max-width: 1100px; }
+  .main h2 { font-family: 'Baloo 2', cursive; font-size: 30px; margin-bottom: 4px; }
+  .main .sub { color: var(--text-dim); font-size: 14.5px; margin-bottom: 26px; }
+  .main .sub b { color: var(--citi-sky); }
+
+  /* stat cards */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { padding: 22px; position: relative; overflow: hidden; transition: transform 0.2s; }
+  .kpi:hover { transform: translateY(-4px); }
+  .kpi .big { font-family: 'Baloo 2', cursive; font-size: 34px; font-weight: 800; }
+  .kpi .lbl { font-size: 12.5px; color: var(--text-dim); font-weight: 600; letter-spacing: 0.5px; }
+  .kpi .trend { position: absolute; top: 18px; right: 18px; font-size: 12px; font-weight: 700; color: var(--teal); }
+  .kpi .spark { position: absolute; bottom: -6px; right: -6px; font-size: 54px; opacity: 0.12; }
+  .kpi:nth-child(1) .big { color: var(--citi-sky); }
+  .kpi:nth-child(2) .big { color: var(--gold); }
+  .kpi:nth-child(3) .big { color: var(--teal); }
+  .kpi:nth-child(4) .big { color: #ff7b8d; }
+
+  .two-col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 980px) { .two-col { grid-template-columns: 1fr; } }
+
+  .panel { padding: 24px; }
+  .panel h3 { font-family: 'Baloo 2', cursive; font-size: 20px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
+
+  /* quiz library rows */
+  .quiz-row {
+    display: flex; align-items: center; gap: 16px; padding: 15px 16px; border-radius: 16px;
+    transition: background 0.2s, transform 0.2s; cursor: pointer;
+  }
+  .quiz-row:hover { background: var(--glass-strong); transform: translateX(5px); }
+  .quiz-row .thumb {
+    width: 52px; height: 52px; border-radius: 14px; font-size: 25px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quiz-row:nth-child(1) .thumb { background: linear-gradient(135deg, #0088ce, #005a9e); }
+  .quiz-row:nth-child(2) .thumb { background: linear-gradient(135deg, #e21836, #a80f26); }
+  .quiz-row:nth-child(3) .thumb { background: linear-gradient(135deg, #00c9a7, #00806a); }
+  .quiz-row:nth-child(4) .thumb { background: linear-gradient(135deg, #7c5cff, #4b32b4); }
+  .quiz-row .ttl { font-weight: 700; font-size: 15.5px; }
+  .quiz-row .mt { font-size: 12.5px; color: var(--text-dim); }
+  .quiz-row .go { margin-left: auto; }
+  .status { font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 4px 10px; border-radius: 999px; }
+  .status.live { background: rgba(226,24,54,0.2); color: #ff7b8d; animation: pulseDot 1.6s infinite; }
+  .status.ready { background: rgba(0,201,167,0.15); color: var(--teal); }
+  .status.draft { background: rgba(255,255,255,0.1); color: var(--text-dim); }
+
+  /* question builder */
+  .builder .field { margin-bottom: 14px; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .opt { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); border: 1.5px solid var(--stroke); border-radius: 12px; padding: 10px 14px; }
+  .opt input[type="text"] { background: none; border: none; outline: none; color: var(--text); font-family: 'Poppins'; font-size: 14px; flex: 1; }
+  .opt .mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--stroke); cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
+  .opt .mark.ok { background: var(--teal); border-color: var(--teal); box-shadow: 0 0 12px rgba(0,201,167,0.5); }
+  .builder .row2 { display: flex; gap: 10px; }
+  .builder .row2 .field { flex: 1; }
+
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: linear-gradient(135deg, var(--teal), #00806a); color: #fff;
+    padding: 14px 28px; border-radius: 999px; font-weight: 700; opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); z-index: 99; box-shadow: 0 14px 40px rgba(0,201,167,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="orbs"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
+<div class="topbar">
+  <div class="left">
+    <span class="brand">QuizTok</span>
+    <div class="divider"></div>
+    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="citi"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
+    <span class="pill" style="background:rgba(226,24,54,0.15);border-color:rgba(226,24,54,0.4);color:#ff7b8d;">ADMIN</span>
+  </div>
+  <div class="right">
+    <span class="pill">👩‍💼 rajat@citi.com</span>
+    <a class="btn ghost small" href="index.html">Logout</a>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="side">
+    <a class="on" href="#"><span class="ico">📊</span> Dashboard</a>
+    <a href="#"><span class="ico">📚</span> Quiz Library</a>
+    <a href="#"><span class="ico">✏️</span> Question Bank</a>
+    <a href="host.html"><span class="ico">🎛️</span> Host Live</a>
+    <a href="#"><span class="ico">👥</span> Teams & Players</a>
+    <a href="#"><span class="ico">📈</span> Reports</a>
+    <div class="spacer"></div>
+    <a href="#"><span class="ico">⚙️</span> Settings</a>
+  </nav>
+
+  <main class="main">
+    <h2 class="rise">Command Center 🎛️</h2>
+    <div class="sub rise d1">Welcome back! Next event: <b>Friday Team Fun · 4:30 PM IST</b> · 2 quizzes queued</div>
+
+    <div class="kpis">
+      <div class="card kpi rise d1"><span class="trend">▲ 12%</span><div class="big">248</div><div class="lbl">TOTAL PLAYERS</div><span class="spark">👥</span></div>
+      <div class="card kpi rise d2"><span class="trend">▲ 3</span><div class="big">18</div><div class="lbl">QUIZZES HOSTED</div><span class="spark">🎪</span></div>
+      <div class="card kpi rise d3"><span class="trend">▲ 6%</span><div class="big">81%</div><div class="lbl">AVG ENGAGEMENT</div><span class="spark">⚡</span></div>
+      <div class="card kpi rise d4"><span class="trend">🔥</span><div class="big">4.8★</div><div class="lbl">FUN RATING</div><span class="spark">🎉</span></div>
+    </div>
+
+    <div class="two-col">
+      <!-- Quiz library -->
+      <div class="card panel rise d3">
+        <h3>📚 Quiz Library <button class="btn red small" onclick="toast('New quiz created — add questions! ✏️')">+ New Quiz</button></h3>
+        <div class="quiz-row" onclick="location.href='host.html'">
+          <div class="thumb">🎬</div>
+          <div><div class="ttl">Guess the GIF + Citi Trivia</div><div class="mt">10 Qs · mixed media · 20s timer</div></div>
+          <span class="status live">● LIVE NOW</span>
+          <a class="btn small go" href="host.html">Host 🎛️</a>
+        </div>
+        <div class="quiz-row">
+          <div class="thumb">💼</div>
+          <div><div class="ttl">Citi History & Values Sprint</div><div class="mt">15 Qs · trivia · 15s timer</div></div>
+          <span class="status ready">READY</span>
+          <a class="btn ghost small go" href="#" onclick="toast('Quiz scheduled for Friday 4:30 PM ✅');return false;">Schedule</a>
+        </div>
+        <div class="quiz-row">
+          <div class="thumb">🎵</div>
+          <div><div class="ttl">Bollywood Audio Round 🔊</div><div class="mt">8 Qs · audio clips · 25s timer</div></div>
+          <span class="status ready">READY</span>
+          <a class="btn ghost small go" href="#" onclick="toast('Quiz scheduled ✅');return false;">Schedule</a>
+        </div>
+        <div class="quiz-row">
+          <div class="thumb">🧩</div>
+          <div><div class="ttl">Emoji Movie Puzzles</div><div class="mt">12 Qs · picture round · draft</div></div>
+          <span class="status draft">DRAFT</span>
+          <a class="btn ghost small go" href="#" onclick="toast('Opening editor… ✏️');return false;">Edit</a>
+        </div>
+      </div>
+
+      <!-- Quick question builder -->
+      <div class="card panel builder rise d4">
+        <h3>✏️ Quick Question Builder</h3>
+        <div class="field">
+          <label>QUESTION</label>
+          <textarea rows="2" placeholder="Type something fun…">Which Citi value is about doing what's right? 🤔</textarea>
+        </div>
+        <div class="opts">
+          <div class="opt"><span class="mark" onclick="mark(this)"></span><input type="text" value="Leadership"></div>
+          <div class="opt"><span class="mark ok" onclick="mark(this)"></span><input type="text" value="Responsible Finance"></div>
+          <div class="opt"><span class="mark" onclick="mark(this)"></span><input type="text" value="Innovation"></div>
+          <div class="opt"><span class="mark" onclick="mark(this)"></span><input type="text" value="Speed"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>TIMER</label><select><option>20 seconds</option><option>15 seconds</option><option>30 seconds</option></select></div>
+          <div class="field"><label>POINTS</label><select><option>1000 + speed bonus</option><option>500 flat</option><option>2000 (double round)</option></select></div>
+        </div>
+        <button class="btn" style="width:100%" onclick="toast('Question added to bank! 🎯')">Add to Question Bank ➕</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">Saved!</div>
+
+<script>
+  function mark(el) {
+    el.closest('.opts').querySelectorAll('.mark').forEach(m => m.classList.remove('ok'));
+    el.classList.add('ok');
+  }
+  let tmr;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(tmr); tmr = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+</script>
+<script src='ink.js'></script>
+</body>
+</html>

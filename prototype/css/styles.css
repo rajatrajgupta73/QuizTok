@@ -1,0 +1,216 @@
+/* ============================================================
+   QuizTok — Shared Design System
+   Citi-branded: Citi Blue #003b70 · Citi Bright #0088ce · Citi Red Arc #e21836
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Baloo+2:wght@600;700;800&display=swap');
+
+:root {
+  --citi-navy: #003b70;
+  --citi-blue: #0088ce;
+  --citi-sky: #4db4ff;
+  --citi-red: #e21836;
+  --gold: #ffc233;
+  --teal: #00c9a7;
+  --violet: #7c5cff;
+  --bg-deep: #050d1c;
+  --bg-mid: #081c38;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.1);
+  --stroke: rgba(255, 255, 255, 0.14);
+  --text: #eef5ff;
+  --text-dim: #9db4d0;
+  --radius: 22px;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: radial-gradient(1200px 800px at 80% -10%, #0c2a52 0%, transparent 60%),
+              radial-gradient(1000px 700px at -10% 110%, #0a2246 0%, transparent 55%),
+              linear-gradient(160deg, var(--bg-deep) 0%, var(--bg-mid) 100%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---------- Animated aurora / floating orbs background ---------- */
+.orbs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(70px); opacity: 0.5;
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.orb.o1 { width: 480px; height: 480px; background: #005a9e; top: -160px; left: -120px; }
+.orb.o2 { width: 380px; height: 380px; background: #e2183655; bottom: -120px; right: -80px; animation-delay: -6s; animation-duration: 22s; }
+.orb.o3 { width: 300px; height: 300px; background: #0088ce66; top: 40%; left: 55%; animation-delay: -12s; animation-duration: 26s; }
+
+@keyframes drift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(90px, 60px) scale(1.15); }
+}
+
+/* Floating quiz-symbol confetti in background */
+.floaters { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+.floater {
+  position: absolute; font-size: 26px; opacity: 0.14;
+  font-family: 'Baloo 2', cursive; font-weight: 800; color: var(--citi-sky);
+  animation: floatUp 14s linear infinite;
+}
+@keyframes floatUp {
+  0%   { transform: translateY(105vh) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.16; }
+  90%  { opacity: 0.16; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+}
+
+/* ---------- Citi logo (recreated wordmark) ---------- */
+.citi-logo { display: inline-flex; align-items: center; }
+.citi-logo svg { display: block; }
+
+/* ---------- QuizTok brand ---------- */
+.brand {
+  font-family: 'Baloo 2', cursive;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(92deg, #4db4ff 0%, #9be1ff 45%, #ff5d73 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  display: inline-block;
+}
+
+/* ---------- Top navigation bar ---------- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 34px;
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(14px);
+  background: rgba(5, 13, 28, 0.55);
+  border-bottom: 1px solid var(--stroke);
+}
+.topbar .left { display: flex; align-items: center; gap: 14px; }
+.topbar .brand { font-size: 26px; }
+.topbar .divider { width: 1px; height: 26px; background: var(--stroke); }
+.topbar .right { display: flex; align-items: center; gap: 14px; }
+
+.pill {
+  padding: 8px 16px; border-radius: 999px;
+  background: var(--glass); border: 1px solid var(--stroke);
+  font-size: 13px; font-weight: 600; color: var(--text-dim);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); animation: pulseDot 1.6s infinite; }
+@keyframes pulseDot { 50% { box-shadow: 0 0 0 6px rgba(0, 201, 167, 0.15); } }
+
+/* ---------- Glass cards ---------- */
+.card {
+  background: var(--glass);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 16px;
+  color: #fff; border: none; cursor: pointer;
+  padding: 15px 34px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--citi-blue) 0%, var(--citi-navy) 100%);
+  box-shadow: 0 10px 26px rgba(0, 136, 206, 0.35);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  text-decoration: none;
+}
+.btn:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 34px rgba(0, 136, 206, 0.5); }
+.btn:active { transform: translateY(0) scale(0.97); }
+.btn::after {
+  content: ''; position: absolute; top: 0; left: -80%;
+  width: 50%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  animation: shine 3.2s ease-in-out infinite;
+}
+@keyframes shine { 0%, 60% { left: -80%; } 100% { left: 130%; } }
+
+.btn.red { background: linear-gradient(135deg, #ff415e 0%, var(--citi-red) 100%); box-shadow: 0 10px 26px rgba(226, 24, 54, 0.4); }
+.btn.red:hover { box-shadow: 0 16px 34px rgba(226, 24, 54, 0.55); }
+.btn.ghost { background: var(--glass-strong); border: 1px solid var(--stroke); box-shadow: none; }
+.btn.gold { background: linear-gradient(135deg, #ffd76e 0%, #ff9d2e 100%); color: #3a2400; box-shadow: 0 10px 26px rgba(255, 194, 51, 0.35); }
+.btn.big { padding: 19px 46px; font-size: 19px; }
+.btn.small { padding: 10px 22px; font-size: 14px; }
+
+/* ---------- Inputs ---------- */
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.4px; }
+.field input, .field select, .field textarea {
+  font-family: 'Poppins', sans-serif; font-size: 16px; color: var(--text);
+  background: rgba(0, 0, 0, 0.25); border: 1.5px solid var(--stroke);
+  border-radius: 14px; padding: 14px 18px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--citi-sky);
+  box-shadow: 0 0 0 4px rgba(77, 180, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* ---------- Entrance animations ---------- */
+.rise { animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rise.d1 { animation-delay: 0.08s; } .rise.d2 { animation-delay: 0.16s; }
+.rise.d3 { animation-delay: 0.24s; } .rise.d4 { animation-delay: 0.32s; }
+.rise.d5 { animation-delay: 0.40s; } .rise.d6 { animation-delay: 0.48s; }
+@keyframes rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+
+.pop { animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); } 20% { transform: rotate(-6deg); }
+  40% { transform: rotate(5deg); } 60% { transform: rotate(-3deg); } 80% { transform: rotate(2deg); }
+}
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+@keyframes glowPulse { 0%, 100% { box-shadow: 0 0 20px rgba(77, 180, 255, 0.25); } 50% { box-shadow: 0 0 44px rgba(77, 180, 255, 0.55); } }
+
+/* ---------- Avatars ---------- */
+.avatar {
+  width: 58px; height: 58px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; background: linear-gradient(135deg, #123a66, #0b2547);
+  border: 2px solid var(--stroke);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s;
+}
+.avatar:hover { transform: scale(1.15) rotate(-6deg); border-color: var(--citi-sky); }
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 99px; }
+
+/* ---------- Footer strip ---------- */
+.footer-strip {
+  text-align: center; padding: 22px; font-size: 12.5px; color: var(--text-dim);
+}
+.footer-strip b { color: var(--citi-sky); }
+
+/* ---------- Cursor effects (layers created by ink.js) ---------- */
+#qt-glow {
+  position: fixed; top: 0; left: 0; width: 460px; height: 460px;
+  border-radius: 50%; pointer-events: none; z-index: 3; opacity: 0;
+  transition: opacity .4s ease;
+  background: radial-gradient(circle,
+    rgba(77,180,255,.16) 0%, rgba(0,136,206,.09) 30%,
+    rgba(226,24,54,.04) 55%, transparent 72%);
+  mix-blend-mode: screen;
+}
+#qt-ink {
+  position: fixed; inset: 0; pointer-events: none; z-index: 2;
+  filter: blur(14px) saturate(1.35);
+  mix-blend-mode: screen; opacity: .85;
+}
