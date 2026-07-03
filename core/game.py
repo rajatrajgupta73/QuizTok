@@ -102,26 +102,39 @@ def create_game(quiz_id: str, host: str, with_bots: bool = True, bot_count: int 
     return g
 
 
-def _new_player(avatar: str, is_bot: bool = False, skill: float = 0.0, team: str = "") -> dict:
-    return {"avatar": avatar, "is_bot": is_bot, "skill": skill, "team": team,
+def _new_player(avatar: str, is_bot: bool = False, skill: float = 0.0, team: str = "", soeid: str = "") -> dict:
+    return {"avatar": avatar, "is_bot": is_bot, "skill": skill, "team": team, "soeid": soeid,
             "score": 0, "streak": 0, "best_streak": 0, "votes_received": 0, "answers": []}
 
 
-def join(pin: str, nick: str, avatar: str, team: str = "") -> tuple[bool, str]:
+def join(pin: str, nick: str, avatar: str, team: str = "", soeid: str = "") -> tuple[bool, str]:
     g = load()
     if not g:
-        return False, "No live game right now — ask your host to start one (or play the solo demo)."
+        return False, "No live game right now — ask your host to start one."
     if g["pin"] != pin.strip():
         return False, "Wrong PIN — check the host screen and try again."
     if g["status"] != "LOBBY":
         return False, "This game already started — wait for the next round!"
+    
+    soeid_upper = soeid.strip().upper()
     nick = nick.strip()
-    if nick in g["players"]:
-        return False, f'"{nick}" is taken — pick another nickname.'
-    g["players"][nick] = _new_player(avatar, team=team.strip())
+    
+    # Check if SOEID is already in use
+    for player_data in g["players"].values():
+        if player_data.get("soeid") == soeid_upper:
+            return False, f"SOEID {soeid_upper} is already in this game — each player needs a unique SOEID."
+    
+    # Allow duplicate names by appending number if needed
+    base_nick = nick
+    counter = 2
+    while nick in g["players"]:
+        nick = f"{base_nick} {counter}"
+        counter += 1
+    
+    g["players"][nick] = _new_player(avatar, team=team.strip(), soeid=soeid_upper)
     save(g)
-    logger.log(nick, "participant", "joined_game", f'pin={pin} team={team or "-"}')
-    return True, "ok"
+    logger.log(nick, "participant", "joined_game", f'pin={pin} soeid={soeid_upper} team={team or "-"}')
+    return True, nick
 
 
 def set_avatar(nick: str, avatar: str) -> None:
@@ -165,6 +178,8 @@ def current_q(g: dict) -> dict:
 def time_left(g: dict) -> float:
     if g["status"] == "VOTING":
         return max(0.0, config.VOTING_TIMER_SEC - (time.time() - g["voting_started"]))
+    if g["status"] == "REVEAL":
+        return max(0.0, 8.0 - (time.time() - g.get("reveal_started", time.time())))
     return max(0.0, current_q(g)["timer"] - (time.time() - g["question_started"]))
 
 
@@ -289,6 +304,7 @@ def _finish_voting(g: dict) -> None:
             p["score"] += pts
             p["votes_received"] += a["votes"]
     g["status"] = "REVEAL"
+    g["reveal_started"] = time.time()
 
 
 # ---------------- tick: bots + auto transitions ----------------
@@ -340,6 +356,17 @@ def tick(g: dict) -> dict:
         if time_left(g) <= 0 or all_voted:
             _finish_voting(g)
             changed = True
+    
+    elif g["status"] == "REVEAL":
+        # Auto-advance to next question after 8 seconds
+        reveal_time = g.get("reveal_started", time.time())
+        if time.time() - reveal_time >= 8.0:
+            if g["q_index"] + 1 < len(g["questions"]):
+                _begin_question(g, g["q_index"] + 1)
+                changed = True
+            else:
+                # Last question - let user manually finish
+                pass
 
     if changed:
         save(g)
@@ -368,6 +395,7 @@ def _reveal_mcq(g: dict) -> None:
             else:
                 _score_mcq(g, name, None, 0.0)  # timed out
     g["status"] = "REVEAL"
+    g["reveal_started"] = time.time()
 
 
 def force_reveal(actor: str) -> None:
@@ -518,6 +546,6 @@ def start_solo_demo(nick: str, avatar: str, team: str = "") -> None:
     quizzes = storage.get_quizzes()
     quiz_id = str(quizzes.iloc[0]["quiz_id"])
     g = create_game(quiz_id, host="__solo__", with_bots=True, bot_count=6)
-    g["players"][nick] = _new_player(avatar, team=team)
+    g["players"][nick] = _new_player(avatar, team=team, soeid="")
     save(g)
     start(nick)

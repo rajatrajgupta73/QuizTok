@@ -66,6 +66,20 @@ def run() -> None:
     """Idempotent — safe to call on every app start."""
     storage.ensure_data_dir()
     auth.ensure_default_admin()
+    auth.ensure_default_host()
+    _seed_teams()
+
+
+def _seed_teams() -> None:
+    """Seed the default TEAM_SUGGESTIONS into teams.xlsx if not already present."""
+    _COLORS = ["#0088ce", "#e21836", "#ffc233", "#00c9a7", "#7c5cff", "#ff6b35"]
+    _EMOJIS = ["⚡", "🔥", "🏆", "🌊", "💜", "🎯"]
+    existing = storage.get_teams()
+    existing_names = set(existing["name"].str.lower()) if not existing.empty else set()
+    for i, team in enumerate(config.TEAM_SUGGESTIONS):
+        if team.lower() not in existing_names:
+            storage.upsert_team(team, _EMOJIS[i % len(_EMOJIS)],
+                                _COLORS[i % len(_COLORS)], "seed")
 
     existing = storage.get_quizzes()
     for q in SAMPLE_QUIZZES:

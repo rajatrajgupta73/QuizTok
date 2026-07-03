@@ -2,12 +2,26 @@
 import streamlit as st
 
 import config
-from core import auth, game, logger
+from core import auth, game, logger, storage
 from ui import components as ui
+
+
+def _team_options() -> list[str]:
+    """Return ['🎯 Solo'] + all teams from Excel (falling back to config list)."""
+    try:
+        df = storage.get_teams()
+        names = df["name"].dropna().tolist() if not df.empty else []
+    except Exception:
+        names = []
+    return ["\U0001f3af Solo"] + (names if names else list(config.TEAM_SUGGESTIONS))
 
 
 def render() -> None:
     st.markdown('<span class="qt-login-scope"></span>', unsafe_allow_html=True)
+    
+    # Add fun sound for Join button
+    ui.sound_effects()
+    
     left, right = st.columns([1.1, 1], gap="large")
 
     with left:
@@ -29,47 +43,66 @@ def render() -> None:
             unsafe_allow_html=True)
 
     with right:
-        tab_play, tab_admin = st.tabs(["🎮  Participant", "🛠️  Admin"])
+        tab_play, tab_host, tab_admin = st.tabs(["🎮  Participant", "🎛️  Host", "🛠️  Admin"])
 
         # ---------------- participant ----------------
         with tab_play:
             with st.form("join_form", border=False):
                 pin = st.text_input("GAME PIN", max_chars=6, placeholder="••••••", key="pinbox")
-                nick = st.text_input("YOUR NICKNAME", max_chars=20, placeholder="e.g. QuizNinja_Rahul")
+                name = st.text_input("YOUR NAME", max_chars=40, placeholder="e.g. Rahul or Rahul Sharma")
+                soeid = st.text_input("SOEID", max_chars=7, placeholder="e.g. AB12345")
+                team_opts = _team_options()
+                p_team_sel = st.selectbox("SELECT TEAM", team_opts, key="p_team_sel")
                 join = st.form_submit_button("Join the Fun 🚀", use_container_width=True)
 
             if join:
-                team = st.session_state.get("teampick", "— solo player —")
-                custom = st.session_state.get("teamcustom", "")
-                team_name = "" if team == "— solo player —" else (custom.strip() if team.startswith("✏️") else team)
-                if len(pin.strip()) < 4 or not nick.strip():
-                    st.error("Enter the game PIN and a nickname to jump in!")
+                # Validate inputs
+                if len(pin.strip()) < 4 or not name.strip() or not soeid.strip():
+                    st.error("Enter the game PIN, your name, and SOEID to jump in!")
+                # Validate SOEID format: 2 letters + 5 numbers
+                elif len(soeid.strip()) != 7:
+                    st.error("SOEID must be exactly 7 characters (2 letters + 5 numbers)")
+                elif not (soeid.strip()[:2].isalpha() and soeid.strip()[2:].isdigit()):
+                    st.error("SOEID format: first 2 characters must be letters, next 5 must be numbers")
                 else:
-                    ok, msg = game.join(pin, nick, "🦊", team_name)
+                    # Format name to proper case (title case)
+                    formatted_name = name.strip().title()
+                    # Format SOEID to uppercase
+                    formatted_soeid = soeid.strip().upper()
+                    selected_team = "" if p_team_sel == "\U0001f3af Solo" else p_team_sel
+
+                    ok, result = game.join(pin, formatted_name, "🦊", selected_team, formatted_soeid)
                     if ok:
-                        st.session_state.update(role="participant", nick=nick.strip(),
-                                                team=team_name, page="lobby")
+                        # result is the actual nick (may have number appended if duplicate)
+                        st.session_state.update(role="participant", nick=result,
+                                                soeid=formatted_soeid, team=selected_team,
+                                                dest_page="lobby", page="transition")
                         st.rerun()
                     else:
-                        st.error(msg)
+                        st.error(result)
 
-            st.markdown('<div class="qt-sub" style="text-align:center;font-size:12.5px;margin:2px 0 8px">'
-                        'No PIN? Ask your host, or watch the lobby screen!</div>',
-                        unsafe_allow_html=True)
-
-            with st.expander("✨ More options — teams & solo demo"):
-                st.selectbox("TEAM (optional — vote & win together)",
-                             ["— solo player —"] + config.TEAM_SUGGESTIONS + ["✏️ Custom team…"],
-                             key="teampick")
-                st.text_input("Custom team name", max_chars=24, key="teamcustom",
-                              placeholder="only if you picked Custom")
-                solo_nick = st.text_input("Nickname for solo demo", max_chars=20, value="",
-                                          placeholder="Try it alone vs 6 bots 🤖", label_visibility="collapsed")
-                if st.button("🤖 Play Solo Demo vs Bots", use_container_width=True, type="secondary"):
-                    nickname = solo_nick.strip() or "QuizNinja"
-                    game.start_solo_demo(nickname, "🦊")
-                    st.session_state.update(role="participant", nick=nickname, team="", page="quiz")
+        # ---------------- host ----------------
+        with tab_host:
+            with st.form("host_form", border=False):
+                h_email = st.text_input("CITI EMAIL", placeholder="host@citi.com", key="host_email")
+                h_pwd = st.text_input("PASSWORD", type="password", placeholder="••••••••", key="host_pwd")
+                h_team_opts = _team_options()
+                h_team_sel = st.selectbox("SELECT TEAM", h_team_opts, key="h_team_sel")
+                h_go = st.form_submit_button("Enter Host Dashboard 🎛️", use_container_width=True)
+            if h_go:
+                ok, name = auth.verify_host(h_email, h_pwd)
+                if ok:
+                    selected_h_team = "" if h_team_sel == "\U0001f3af Solo" else h_team_sel
+                    st.session_state.update(role="host", admin_email=h_email.strip(),
+                                            admin_name=name, team=selected_h_team,
+                                            dest_page="admin", page="transition")
                     st.rerun()
+                else:
+                    st.error("Invalid credentials. Default: host@citi.com / host123")
+            st.markdown(
+                f'<div class="qt-sub" style="text-align:center;font-size:12.5px">First run? '
+                f'Sign in with <b style="color:#4db4ff">host@citi.com / host123</b></div>',
+                unsafe_allow_html=True)
 
         # ---------------- admin ----------------
         with tab_admin:
@@ -81,16 +114,13 @@ def render() -> None:
                 ok, name = auth.verify_admin(email, pwd)
                 if ok:
                     st.session_state.update(role="admin", admin_email=email.strip(),
-                                            admin_name=name, page="admin")
+                                            admin_name=name, dest_page="admin", page="transition")
                     st.rerun()
                 else:
-                    st.error("Invalid credentials. Default: admin@citi.com / citi123")
+                    st.error("Invalid credentials. Default: admin@citi.com / admin123")
             st.markdown(
                 f'<div class="qt-sub" style="text-align:center;font-size:12.5px">First run? '
-                f'Sign in with <b style="color:#4db4ff">admin@citi.com / citi123</b></div>',
+                f'Sign in with <b style="color:#4db4ff">admin@citi.com / admin123</b></div>',
                 unsafe_allow_html=True)
 
-    st.markdown(
-        '<div class="qt-sub" style="text-align:center;margin-top:34px;font-size:12.5px">'
-        'QuizTok · An internal team-engagement game for <b style="color:#4db4ff">Citi</b> · '
-        'For fun, not for prod data 😄</div>', unsafe_allow_html=True)
+

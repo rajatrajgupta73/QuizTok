@@ -54,7 +54,7 @@ def topbar(*pills_html: str) -> None:
     pills = "".join(pills_html)
     st.markdown(
         f'<div class="qt-topbar"><span class="qt-brand">QuizTok</span>'
-        f'<span class="qt-div"></span>{citi_logo()}<span class="qt-spacer"></span>{pills}</div>',
+        f'<span class="qt-spacer"></span>{pills}</div>',
         unsafe_allow_html=True)
 
 
@@ -96,10 +96,11 @@ def timer_ring(seconds_left: float, total: int) -> None:
     frac = max(0.0, min(1.0, seconds_left / total)) if total else 0
     color = "#e21836" if seconds_left <= 5 else "#4db4ff"
     danger = "danger" if seconds_left <= 5 else ""
+    # qt-timer-stroke uses CSS transition (0.52s linear) for smooth sweep between rerenders
     st.markdown(
         f'<div class="qt-timerwrap"><div class="qt-timer {danger}">'
         f'<svg width="86" height="86"><circle cx="43" cy="43" r="{r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="7"/>'
-        f'<circle cx="43" cy="43" r="{r}" fill="none" stroke="{color}" stroke-width="7" stroke-linecap="round" '
+        f'<circle class="qt-timer-stroke" cx="43" cy="43" r="{r}" fill="none" stroke="{color}" stroke-width="7" stroke-linecap="round" '
         f'stroke-dasharray="{circ:.0f}" stroke-dashoffset="{circ * (1 - frac):.0f}"/></svg>'
         f'<span class="num">{int(seconds_left)}</span></div></div>', unsafe_allow_html=True)
 
@@ -207,3 +208,285 @@ def autorefresh(seconds: float = 1.0) -> None:
     """Poll the shared game state: sleep then rerun."""
     time.sleep(seconds)
     st.rerun()
+
+
+def countdown_popup(q_index: int, reveal_started: float, reveal_duration: float = 8.0) -> None:
+    """Self-contained JS countdown (3→2→1→GO!) with sounds.
+
+    Injects into window.parent once per question (deduplicated via
+    window.parent.qtCdActive).  JS schedules all steps internally via
+    setTimeout so there's zero gap between numbers and no dependency on
+    Streamlit rerenders.  Each number plays a distinct Web Audio beep.
+
+    Args:
+        q_index: current question index (used as dedup key).
+        reveal_started: Unix timestamp (time.time()) when REVEAL phase began.
+        reveal_duration: total reveal phase length in seconds (default 8.0).
+    """
+    import math
+    # Only inject if the countdown window is approaching (within last 3.6s)
+    import time as _time
+    elapsed = _time.time() - reveal_started
+    remaining = reveal_duration - elapsed
+    if remaining > 3.6 or remaining < -1.0:
+        return
+
+    # Pass exact server-side timestamps to JS so it self-schedules precisely
+    reveal_started_ms = int(reveal_started * 1000)
+    reveal_end_ms     = int((reveal_started + reveal_duration) * 1000)
+
+    st.components.v1.html(f"""
+<script>
+(function() {{
+    // ── Dedup: only one countdown per question ──────────────────────────────
+    var KEY = 'qtCdActive_{q_index}';
+    if (window.parent[KEY]) return;
+    window.parent[KEY] = true;
+
+    var par       = window.parent.document;
+    var endMs     = {reveal_end_ms};
+    var STEPS     = [
+        {{ label:'3',   color:'#e21836', glow:'rgba(226,24,54,0.85)',  hz:[600],            sub:'NEXT QUESTION STARTS IN...', showAt: endMs - 3000 }},
+        {{ label:'2',   color:'#4db4ff', glow:'rgba(77,180,255,0.85)', hz:[740],            sub:'NEXT QUESTION STARTS IN...', showAt: endMs - 2000 }},
+        {{ label:'1',   color:'#00c9a7', glow:'rgba(0,201,167,0.85)',  hz:[880],            sub:'NEXT QUESTION STARTS IN...', showAt: endMs - 1000 }},
+        {{ label:'GO!', color:'#ffc233', glow:'rgba(255,194,51,0.85)', hz:[880,1100,1320],  sub:'GET READY!',    showAt: endMs        }}
+    ];
+
+    // ── Inject shared styles once ───────────────────────────────────────────
+    if (!par.getElementById('qt-cd-styles')) {{
+        var sty = par.createElement('style');
+        sty.id  = 'qt-cd-styles';
+        sty.textContent =
+            '@keyframes qtCdIn  {{from{{opacity:0}}to{{opacity:1}}}}' +
+            '@keyframes qtCdPop {{0%{{transform:scale(0.1);opacity:0}}' +
+            '55%{{transform:scale(1.2);opacity:1}}78%{{transform:scale(0.93)}}' +
+            '100%{{transform:scale(1);opacity:1}}}}' +
+            '@keyframes qtCdOut {{to{{opacity:0;transform:scale(1.08)}}}}';
+        par.head.appendChild(sty);
+    }}
+
+    // ── Audio helper (runs in iframe context) ──────────────────────────────
+    var _actx = null;
+    function getACtx() {{
+        if (!_actx) {{
+            try {{ _actx = new (window.AudioContext || window.webkitAudioContext)(); }} catch(e) {{}}
+        }}
+        return _actx;
+    }}
+    function playBeep(freqs) {{
+        var ac = getACtx();
+        if (!ac) return;
+        try {{
+            freqs.forEach(function(f, i) {{
+                var osc  = ac.createOscillator();
+                var gain = ac.createGain();
+                osc.connect(gain); gain.connect(ac.destination);
+                osc.type            = 'sine';
+                osc.frequency.value = f;
+                var t = ac.currentTime + i * 0.07;
+                gain.gain.setValueAtTime(0.0, t);
+                gain.gain.linearRampToValueAtTime(0.22, t + 0.012);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+                osc.start(t); osc.stop(t + 0.2);
+            }});
+        }} catch(e) {{}}
+    }}
+
+    // ── Show one overlay step ───────────────────────────────────────────────
+    function showStep(step) {{
+        // Remove previous overlay
+        var old = par.getElementById('qt-countdown-root');
+        if (old) {{ old.style.animation = 'qtCdOut 0.22s ease forwards'; setTimeout(function(){{old.remove();}}, 220); }}
+
+        playBeep(step.hz);
+
+        var wrap = par.createElement('div');
+        wrap.id  = 'qt-countdown-root';
+        wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;' +
+            'background:rgba(0,11,26,0.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);' +
+            'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;' +
+            'animation:qtCdIn 0.15s ease both';
+
+        var num = par.createElement('div');
+        num.style.cssText = 'font-family:\\'Baloo 2\\',cursive;font-weight:900;line-height:1;' +
+            'font-size:clamp(90px,16vw,172px);' +
+            'color:' + step.color + ';' +
+            'text-shadow:0 0 50px ' + step.glow + ',0 0 100px ' + step.glow + ',0 6px 0 rgba(0,0,0,0.5);' +
+            'animation:qtCdPop 0.44s cubic-bezier(0.34,1.56,0.64,1) both';
+        num.textContent = step.label;
+
+        var sub = par.createElement('div');
+        sub.style.cssText = 'font-family:\\'Poppins\\',sans-serif;font-size:15px;font-weight:700;' +
+            'letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,0.58)';
+        sub.textContent = step.sub;
+
+        wrap.appendChild(num); wrap.appendChild(sub);
+        par.body.appendChild(wrap);
+
+        // Auto-dismiss after 900ms (650ms for GO!)
+        var dur = step.label === 'GO!' ? 650 : 900;
+        setTimeout(function() {{
+            var o = par.getElementById('qt-countdown-root');
+            if (!o) return;
+            o.style.animation = 'qtCdOut 0.25s ease forwards';
+            setTimeout(function() {{ if (par.getElementById('qt-countdown-root')) par.getElementById('qt-countdown-root').remove(); }}, 250);
+        }}, dur);
+    }}
+
+    // ── Schedule each step precisely ────────────────────────────────────────
+    var now = Date.now();
+    STEPS.forEach(function(step) {{
+        var delay = step.showAt - now;
+        if (delay >= -600) {{          // show if ≤600ms late (catch-up)
+            setTimeout(function() {{ showStep(step); }}, Math.max(0, delay));
+        }}
+    }});
+
+    // ── Cleanup flag after the whole sequence ───────────────────────────────
+    setTimeout(function() {{ delete window.parent[KEY]; }}, endMs - now + 2000);
+}})();
+</script>
+""", height=0)
+
+
+def sound_effects() -> None:
+    """Inject playful sound effects for participant interactions using Web Audio API."""
+    st.components.v1.html("""
+    <script>
+    (function() {
+        if (window.qtSoundsLoaded) return;
+        window.qtSoundsLoaded = true;
+        
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Playful hover sound (quick high beep - 60ms)
+        function playHover() {
+            try {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.frequency.value = 900;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.06);
+                
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.06);
+            } catch(e) {}
+        }
+        
+        // Success click sound (cheerful 3-note ascending - 150ms total)
+        function playClick() {
+            try {
+                [700, 850, 1000].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    const time = ctx.currentTime + (i * 0.045);
+                    gain.gain.setValueAtTime(0.09, time);
+                    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.06);
+                    
+                    osc.start(time);
+                    osc.stop(time + 0.06);
+                });
+            } catch(e) {}
+        }
+        
+        // Vote sound (cute pop - 80ms)
+        function playVote() {
+            try {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.frequency.setValueAtTime(1200, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.08);
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.11, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.08);
+            } catch(e) {}
+        }
+        
+        // Avatar/Join sound (playful beep - 50ms)
+        function playSelect() {
+            try {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.frequency.value = 750;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+                
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.05);
+            } catch(e) {}
+        }
+        
+        // Attach to buttons with retry mechanism
+        function attachSounds() {
+            const allBtns = window.parent.document.querySelectorAll(`button[kind="secondary"], button[kind="primary"]`);
+            allBtns.forEach(btn => {
+                if (!btn.qtSoundAdded) {
+                    const text = btn.textContent;
+                    const parent = btn.closest('[data-testid="stButton"]');
+                    const key = parent ? parent.className : '';
+                    
+                    // Answer buttons (MCQ options with shapes)
+                    if (text.includes('▲') || text.includes('◆') || text.includes('●') || text.includes('■')) {
+                        btn.qtSoundAdded = true;
+                        btn.addEventListener('mouseenter', playHover);
+                        btn.addEventListener('click', playClick);
+                    }
+                    // Avatar buttons (emoji buttons)
+                    else if (key.includes('avat') || /^[🦊🐼🦁🐸🦄🐙🐯🦉🐨🐵🦖🐳]/.test(text)) {
+                        btn.qtSoundAdded = true;
+                        btn.addEventListener('mouseenter', playHover);
+                        btn.addEventListener('click', playSelect);
+                    }
+                    // Join the Fun button
+                    else if (text.includes('Join the Fun')) {
+                        btn.qtSoundAdded = true;
+                        btn.addEventListener('mouseenter', playHover);
+                        btn.addEventListener('click', playClick);
+                    }
+                    // Submit answer button
+                    else if (text.includes('Submit Answer')) {
+                        btn.qtSoundAdded = true;
+                        btn.addEventListener('mouseenter', playHover);
+                        btn.addEventListener('click', playClick);
+                    }
+                    // Vote buttons
+                    else if (text.includes('Vote for') || text.includes('🗳️')) {
+                        btn.qtSoundAdded = true;
+                        btn.addEventListener('mouseenter', playHover);
+                        btn.addEventListener('click', playVote);
+                    }
+                }
+            });
+        }
+        
+        // Keep checking for new buttons (Streamlit rerenders)
+        attachSounds();
+        const interval = setInterval(attachSounds, 400);
+        
+        // Cleanup after 5 minutes to prevent memory leaks
+        setTimeout(() => clearInterval(interval), 300000);
+    })();
+    </script>
+    """, height=0)
+
+
+

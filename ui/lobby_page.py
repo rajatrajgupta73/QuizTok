@@ -21,6 +21,9 @@ def render() -> None:
         st.session_state.page = "quiz"
         st.rerun()
 
+    # Add playful sound effects for avatar selection
+    ui.sound_effects()
+
     ui.topbar(ui.pill(f'🎮 {nick}'), ui.pill("Lobby open", live_dot=True))
     ui.pin_banner(g["pin"], f'Playing <b style="color:#4db4ff">{g["quiz_title"]}</b> · waiting for the host to launch')
 

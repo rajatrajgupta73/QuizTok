@@ -10,14 +10,19 @@ QUIZZES_XLSX = DATA_DIR / "quizzes.xlsx"
 RESULTS_XLSX = DATA_DIR / "results.xlsx"
 ACTIVITY_XLSX = DATA_DIR / "activity_log.xlsx"
 QUESTION_BANK_XLSX = DATA_DIR / "question_bank.xlsx"
+TEAMS_XLSX = DATA_DIR / "teams.xlsx"
 LIVE_GAME_JSON = DATA_DIR / "live_game.json"
 
 # ---------- App ----------
 APP_NAME = "QuizTok"
 APP_TAGLINE = "Play. Learn. QuizTok it!"
 DEFAULT_ADMIN_EMAIL = "admin@citi.com"
-DEFAULT_ADMIN_PASSWORD = "citi123"          # change after first login
+DEFAULT_ADMIN_PASSWORD = "admin123"          # change after first login
 DEFAULT_ADMIN_NAME = "QuizTok Admin"
+
+DEFAULT_HOST_EMAIL = "host@citi.com"
+DEFAULT_HOST_PASSWORD = "host123"
+DEFAULT_HOST_NAME = "QuizTok Host"
 
 # ---------- Citi branding ----------
 CITI_NAVY = "#003b70"

@@ -19,6 +19,9 @@ def render() -> None:
             st.rerun()
         return
 
+    # Add playful sound effects for participant interactions
+    ui.sound_effects()
+
     g = game.tick(g)                                  # bots move + auto phase changes
 
     if g["status"] == "FINISHED":
@@ -32,7 +35,16 @@ def render() -> None:
     q = game.current_q(g)
     is_controller = g["host"] == "__solo__" or st.session_state.get("role") == "admin"
 
-    ui.topbar(ui.pill(f'{me["avatar"]} {nick}'), ui.pill("LIVE", live_dot=True, red=True))
+    # Topbar with logout option
+    col1, col2 = st.columns([6, 1])
+    with col1:
+        ui.topbar(ui.pill(f'{me["avatar"]} {nick}'), ui.pill("LIVE", live_dot=True, red=True))
+    with col2:
+        if st.button("🚪 Logout", type="secondary", key="logout_btn"):
+            st.session_state.clear()
+            st.session_state.page = "login"
+            st.rerun()
+    
     ui.hud(g["q_index"] + 1, len(g["questions"]), me["streak"], me["score"])
 
     if g["status"] == "QUESTION":
@@ -144,25 +156,22 @@ def _render_reveal(g: dict, q: dict, nick: str, is_controller: bool) -> None:
                         f'<div class="who">{a["avatar"]} {a["name"]}</div>'
                         f'<div class="txt">{a["text"]}</div></div>', unsafe_allow_html=True)
 
-    board = game.leaderboard(g)
-    st.markdown('<div style="font-family:\'Baloo 2\',cursive;font-size:42px;font-weight:800;'
-                'text-align:center;margin-top:10px">🏆 Leaderboard</div>'
-                f'<div class="qt-sub" style="text-align:center;margin-bottom:12px">after '
-                f'<b style="color:#4db4ff">Q{g["q_index"] + 1}</b></div>', unsafe_allow_html=True)
-    ui.podium(board)
-    ui.rank_rows(board, me=nick)
-    teams = game.team_leaderboard(g)
-    if teams:
-        st.markdown('<div class="qt-cat" style="margin-top:10px">TEAM BATTLE</div>', unsafe_allow_html=True)
-        ui.team_rows(teams)
+    # Add spacing and keep focus on player's performance
+    st.markdown('<div style="margin-top:30px;margin-bottom:10px;"></div>', unsafe_allow_html=True)
 
     last = g["q_index"] + 1 >= len(g["questions"])
+
+    # Self-contained JS countdown (3→2→1→GO! + sound) — only when not the last question
+    if not last:
+        ui.countdown_popup(g["q_index"], g.get("reveal_started", 0.0))
+
     if is_controller:
         label = "See Final Results 🎉" if last else "Next Question ▶"
         if st.button(label, key="gold_next", use_container_width=True):
             game.next_question(nick)
             st.rerun()
     else:
-        st.markdown('<div class="qt-sub" style="text-align:center;margin-top:8px">'
-                    'Host is lining up the next round… 🎬</div>', unsafe_allow_html=True)
-        ui.autorefresh(1.5)
+        if last:
+            st.markdown('<div class="qt-sub" style="text-align:center;margin-top:8px">'
+                        'Host is lining up the next round… 🎬</div>', unsafe_allow_html=True)
+        ui.autorefresh(0.5)

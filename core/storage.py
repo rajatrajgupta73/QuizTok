@@ -17,6 +17,7 @@ SCHEMAS = {
     (config.RESULTS_XLSX, "scores"): ["game_id", "rank", "player", "team", "avatar", "score", "correct", "answered", "best_streak", "votes_received", "is_bot"],
     (config.RESULTS_XLSX, "answers"): ["game_id", "player", "q_index", "question", "picked", "correct_answer", "is_correct", "votes", "time_taken_sec", "points"],
     (config.ACTIVITY_XLSX, "log"): ["timestamp", "actor", "role", "action", "details"],
+    (config.TEAMS_XLSX, "teams"): ["name", "emoji", "color", "created_by", "created_at"],
 }
 
 
@@ -135,3 +136,48 @@ def get_kpis() -> dict:
         "avg_accuracy": f"{games['avg_accuracy_pct'].mean():.0f}%" if not games.empty else "—",
         "last_winner": str(games.iloc[-1]["winner"]) if not games.empty else "—",
     }
+
+
+# ---------------- Teams ----------------
+
+def get_teams() -> pd.DataFrame:
+    return read_sheet(config.TEAMS_XLSX, "teams")
+
+
+def upsert_team(name: str, emoji: str, color: str, created_by: str) -> bool:
+    """Insert a new team; returns False if name already exists."""
+    df = get_teams()
+    if not df.empty and not df[df["name"].str.lower() == name.strip().lower()].empty:
+        return False
+    append_rows(config.TEAMS_XLSX, "teams", [{
+        "name": name.strip(),
+        "emoji": emoji,
+        "color": color,
+        "created_by": created_by,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }])
+    return True
+
+
+def delete_team(name: str) -> None:
+    df = get_teams()
+    df = df[df["name"].str.lower() != name.strip().lower()]
+    write_sheet(config.TEAMS_XLSX, "teams", df)
+
+
+def get_team_scoreboard() -> pd.DataFrame:
+    """Aggregate total scores per team across all games (humans only)."""
+    scores = read_sheet(config.RESULTS_XLSX, "scores")
+    if scores.empty:
+        return pd.DataFrame(columns=["Team", "Games", "Players", "Total Score", "Avg Score"])
+    humans = scores[scores["is_bot"] == False]  # noqa: E712
+    teams = humans[humans["team"].notna() & (humans["team"].astype(str).str.strip() != "")]
+    if teams.empty:
+        return pd.DataFrame(columns=["Team", "Games", "Players", "Total Score", "Avg Score"])
+    agg = teams.groupby("team").agg(
+        Games=("game_id", "nunique"),
+        Players=("player", "nunique"),
+        Total_Score=("score", "sum"),
+    ).reset_index().rename(columns={"team": "Team", "Total_Score": "Total Score"})
+    agg["Avg Score"] = (agg["Total Score"] / agg["Players"]).round(0).astype(int)
+    return agg.sort_values("Total Score", ascending=False).reset_index(drop=True)

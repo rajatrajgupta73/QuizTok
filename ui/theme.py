@@ -25,7 +25,23 @@ html, body, [class*="css"] {
 }
 header[data-testid="stHeader"] { background: transparent; }
 #MainMenu, footer { visibility: hidden; }
+/* Headless feel — hide Streamlit's loading/refresh indicators */
+[data-testid="stStatusWidget"] { visibility: hidden !important; }
+[data-testid="stDecoration"]  { display: none !important; }
 .block-container { padding-top: 1.2rem; max-width: 1150px; }
+
+/* Hide Streamlit form instruction tooltips */
+[data-testid="stFormSubmitButton"] + div[data-testid="stMarkdownContainer"],
+.stForm [data-testid="InputInstructions"],
+.stTextInput [data-testid="InputInstructions"],
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder {
+  /* Keep placeholders visible but hide instruction text */
+}
+[data-testid="InputInstructions"] { display: none !important; }
+.stTextInput > div[data-testid="stMarkdownContainer"]:last-child { display: none !important; }
+div[class*="InputInstructions"] { display: none !important; }
 
 /* floating orbs */
 .qt-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: .45; z-index: 0; pointer-events: none;
@@ -47,7 +63,7 @@ header[data-testid="stHeader"] { background: transparent; }
 /* ================= brand / topbar ================= */
 .qt-topbar { display:flex; align-items:center; gap:14px; padding: 6px 2px 14px;
   border-bottom: 1px solid var(--stroke); margin-bottom: 18px; position: relative; z-index: 1; }
-.qt-brand { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 30px; letter-spacing: -.5px;
+.qt-brand { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: 38px; letter-spacing: -.5px;
   background: linear-gradient(92deg, #4db4ff, #9be1ff 45%, #ff5d73);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .qt-div { width:1px; height:26px; background: var(--stroke); }
@@ -214,6 +230,8 @@ body:has(.qt-login-scope) [data-testid="column"]:last-child {
 .qt-timer .num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   font-family: 'Baloo 2', cursive; font-size: 32px; font-weight: 800; color: var(--text); }
 .qt-timer.danger .num { color: var(--citi-red); }
+/* Smooth ring sweep — fills the gap between 0.5s server rerenders */
+.qt-timer-stroke { transition: stroke-dashoffset 0.52s linear; }
 
 /* question text */
 .qt-question { text-align:center; font-size: 26px; font-weight: 700; line-height: 1.4;
@@ -381,6 +399,25 @@ div[class*="st-key-pinbox"] input {
   mix-blend-mode: screen;
 }
 
+/* custom neon cursor - hide default, show only neon circle */
+* { cursor: none !important; }
+#qt-neon-cursor {
+  position: fixed; width: 21px; height: 21px; border-radius: 50%;
+  border: 2px solid #4db4ff; pointer-events: none; z-index: 9999;
+  box-shadow: 0 0 8px #4db4ff, 0 0 16px #0088ce, inset 0 0 5px rgba(77,180,255,.35);
+  transition: width .15s ease, height .15s ease, border-width .15s ease;
+  will-change: transform;
+}
+#qt-neon-cursor::before {
+  content: ''; position: absolute; inset: -6px;
+  border-radius: 50%; border: 1px solid rgba(77,180,255,.25);
+  box-shadow: 0 0 12px rgba(77,180,255,.35);
+}
+#qt-neon-cursor.click {
+  width: 18px; height: 18px; border-width: 3px;
+  box-shadow: 0 0 13px #4db4ff, 0 0 22px #0088ce, inset 0 0 8px rgba(77,180,255,.5);
+}
+
 /* ink-in-water fluid trail (canvas created by JS, painted every frame) */
 #qt-ink {
   position: fixed; inset: 0; pointer-events: none; z-index: 2;
@@ -531,7 +568,76 @@ _FLOATERS_JS = """
 """
 
 
+_NEON_CURSOR_JS = """
+<script>
+(function() {
+  const P = window.parent, doc = P.document;
+  
+  // Create neon cursor element if it doesn't exist
+  let cursor = doc.getElementById('qt-neon-cursor');
+  if (!cursor) {
+    cursor = doc.createElement('div');
+    cursor.id = 'qt-neon-cursor';
+    doc.body.appendChild(cursor);
+  }
+  
+  let mouseX = 0, mouseY = 0;
+  let cursorX = 0, cursorY = 0;
+  
+  // Update mouse position
+  function onMouseMove(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  }
+  
+  // Click effect
+  function onMouseDown() {
+    cursor.classList.add('click');
+  }
+  
+  function onMouseUp() {
+    cursor.classList.remove('click');
+  }
+  
+  // Smooth cursor following with lerp
+  function animate() {
+    const dx = mouseX - cursorX;
+    const dy = mouseY - cursorY;
+    
+    cursorX += dx * 0.15;
+    cursorY += dy * 0.15;
+    
+    cursor.style.transform = `translate(${cursorX - 10.5}px, ${cursorY - 10.5}px)`;
+    
+    requestAnimationFrame(animate);
+  }
+  
+  // Remove old listeners if they exist
+  if (P.__qtCursorCleanup) {
+    try { P.__qtCursorCleanup(); } catch(e) {}
+  }
+  
+  // Add event listeners
+  doc.addEventListener('mousemove', onMouseMove);
+  doc.addEventListener('mousedown', onMouseDown);
+  doc.addEventListener('mouseup', onMouseUp);
+  
+  // Cleanup function
+  P.__qtCursorCleanup = () => {
+    doc.removeEventListener('mousemove', onMouseMove);
+    doc.removeEventListener('mousedown', onMouseDown);
+    doc.removeEventListener('mouseup', onMouseUp);
+  };
+  
+  // Start animation loop
+  animate();
+})();
+</script>
+"""
+
+
 def inject() -> None:
     st.markdown(_CSS, unsafe_allow_html=True)
     st_components.html(_GLOW_JS, height=0)
     st_components.html(_FLOATERS_JS, height=0)
+    st_components.html(_NEON_CURSOR_JS, height=0)

@@ -5,6 +5,8 @@ Kahoot-style live quiz platform for Citi team events. 100% local: Excel files as
 **Run:** `streamlit run app.py` (from this directory) → http://localhost:8501
 **Default admin:** admin@citi.com / citi123 (demo credential, shown on the login page)
 
+**📚 CODE INDEX:** See `CODE_INDEX.md` for complete file/function reference, edit scenarios, and dependency map. Use it to quickly locate code when making queries or edits.
+
 ## Architecture
 
 Single Streamlit process. `app.py` routes by `st.session_state["page"]` →
