@@ -19,9 +19,24 @@ def render() -> None:
 
     g = game.tick(g)
 
-    ui.topbar(ui.pill("HOST MODE", red=True),
-              ui.pill(f'PIN <b>{g["pin"]}</b>'),
-              ui.pill(f'{len(g["players"])} players', live_dot=True))
+    if ui.page_header(ui.pill("HOST MODE", red=True),
+                       ui.pill(f'PIN <b>{g["pin"]}</b>'),
+                       ui.pill(f'{len(g["players"])} players', live_dot=True),
+                       logout_label="Logout", logout_key="host_logout"):
+        ui.begin_exit_transition("logout")
+        st.rerun()
+
+    # quick nav — jump back to the Command Center or swap to another game
+    nav1, nav2, _ = st.columns([1.1, 1.2, 2.4])
+    if nav1.button("🎛️ Command Center", key="host_nav_cc", use_container_width=True):
+        st.session_state.page = "admin"
+        st.rerun()
+    if nav2.button("🔄 Change / New Game", key="red_newgame", use_container_width=True):
+        if g["status"] != "LOBBY":
+            game.finish(email)            # persist scores before switching
+        game.clear()
+        st.session_state.page = "admin"
+        st.rerun()
 
     if g["status"] == "LOBBY":
         _lobby(g, email)
@@ -38,7 +53,21 @@ def _lobby(g: dict, email: str) -> None:
     ui.pin_banner(g["pin"], f'Hosting <b style="color:#4db4ff">{g["quiz_title"]}</b> · '
                             f'{len(g["questions"])} questions · share the PIN with the room!')
     st.markdown('<div style="margin-top:14px"></div>', unsafe_allow_html=True)
-    ui.player_chips(g["players"])
+    ui.team_grouped_chips(g["players"])
+
+    with st.expander("➕ Add media question (image / audio / video)", expanded=False):
+        st.caption("Upload a clip or image with an MCQ or subjective prompt — "
+                   "participants will see it when that round plays.")
+        q = ui.media_question_builder(
+            key_prefix="host_lobby_mq", quiz_id=str(g["quiz_id"]), show_quiz_picker=False)
+        if q:
+            q.pop("quiz_id", None)
+            ok, msg = game.append_question_in_lobby(email, q)
+            if ok:
+                st.success(f"{msg} 🎯")
+                st.rerun()
+            else:
+                st.error(msg)
 
     c1, c2 = st.columns([2, 1])
     if c1.button("🚀 LAUNCH GAME", key="gold_launch", use_container_width=True,
@@ -99,7 +128,11 @@ def _live(g: dict, email: str) -> None:
         st.markdown(f'<div class="qt-now">● LIVE · QUESTION {g["q_index"] + 1} OF '
                     f'{len(g["questions"])} · {phase} · {int(tl)}s LEFT</div>', unsafe_allow_html=True)
         ui.timer_ring(tl, config.VOTING_TIMER_SEC if g["status"] == "VOTING" else q["timer"])
-        st.markdown(f'<div class="qt-question">{q["question"]}</div>', unsafe_allow_html=True)
+        ui.question_stage(
+            "VOTING 🗳️" if g["status"] == "VOTING" else
+            ("SUBJECTIVE ✍️" if q["type"] == "subjective" else ""),
+            q,
+        )
 
         humans = [n for n, p in g["players"].items() if not p["is_bot"]]
         if g["status"] == "QUESTION":
@@ -137,7 +170,7 @@ def _live(g: dict, email: str) -> None:
 def _reveal(g: dict, email: str) -> None:
     q = game.current_q(g)
     st.markdown(f'<div class="qt-cat">Q{g["q_index"] + 1} RESULTS</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="qt-question">{q["question"]}</div>', unsafe_allow_html=True)
+    ui.question_stage("", q)
 
     if q["type"] == "mcq":
         ui.distribution_bars(game.answer_distribution(g), q["options"], q["correct"])
@@ -154,6 +187,9 @@ def _reveal(g: dict, email: str) -> None:
         ui.team_rows(teams)
 
     last = g["q_index"] + 1 >= len(g["questions"])
+    if not last:
+        ui.countdown_popup(g["q_index"], g.get("reveal_started", 0.0))
+
     c1, c2 = st.columns([2, 1])
     label = "🎉 Finish & Show Podium" if last else "Next Question ▶"
     if c1.button(label, key="gold_next", use_container_width=True):
@@ -163,3 +199,5 @@ def _reveal(g: dict, email: str) -> None:
         game.finish(email)
         st.session_state.page = "results"
         st.rerun()
+    if not last:
+        ui.autorefresh(0.5)

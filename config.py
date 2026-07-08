@@ -11,24 +11,49 @@ RESULTS_XLSX = DATA_DIR / "results.xlsx"
 ACTIVITY_XLSX = DATA_DIR / "activity_log.xlsx"
 QUESTION_BANK_XLSX = DATA_DIR / "question_bank.xlsx"
 TEAMS_XLSX = DATA_DIR / "teams.xlsx"
+DOMAIN_TREE_XLSX = DATA_DIR / "domain_tree.xlsx"
+LEARNING_PROGRESS_XLSX = DATA_DIR / "learning_progress.xlsx"
+FEEDBACK_XLSX = DATA_DIR / "feedback.xlsx"
 LIVE_GAME_JSON = DATA_DIR / "live_game.json"
+MEDIA_DIR = DATA_DIR / "media"
+
+# Uploaded question media (image / audio / video) — local files only
+MEDIA_MAX_BYTES = 25 * 1024 * 1024  # 25 MB
+MEDIA_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+MEDIA_AUDIO_EXT = {".mp3", ".wav", ".ogg", ".m4a", ".aac"}
+MEDIA_VIDEO_EXT = {".mp4", ".webm", ".mov", ".mkv"}
+
+# Domain Academy — topic groups under Banking Operations
+OPS_TOPIC_TERMS = {
+    "compliance": ["KYC", "AML", "CDD", "EDD", "PEP", "STR", "CTR", "FATCA", "LEI"],
+    "payments": ["RTGS", "NEFT", "IMPS", "UPI", "NACH", "SWIFT", "IBAN", "ACH", "MICR", "IFSC", "DD"],
+    "accounts": ["CASA", "EMV", "CVV", "OTP", "2FA", "POS", "NPA", "GL", "CBK", "RECON", "MKR-CHKR", "EOD", "SOP", "RCA", "CTS"],
+}
+
+# Gamified quiz build presets (admin Question Bank tab)
+QUIZ_MODE_PRESETS = {
+    "standard": {"label": "Standard Mix", "subjective": 2, "filter": None},
+    "acronym_blitz": {"label": "Acronym Blitz", "subjective": 0, "filter": "acronym"},
+    "scenario_showdown": {"label": "Scenario Showdown", "subjective": 10, "filter": "subjective_only"},
+    "mastery_match": {"label": "Mastery Match", "subjective": 1, "filter": "mastery"},
+}
 
 # ---------- App ----------
 APP_NAME = "QuizTok"
 APP_TAGLINE = "Play. Learn. QuizTok it!"
-DEFAULT_ADMIN_EMAIL = "admin@citi.com"
+DEFAULT_ADMIN_EMAIL = "admin@abc.com"
 DEFAULT_ADMIN_PASSWORD = "admin123"          # change after first login
 DEFAULT_ADMIN_NAME = "QuizTok Admin"
 
-DEFAULT_HOST_EMAIL = "host@citi.com"
+DEFAULT_HOST_EMAIL = "host@abc.com"
 DEFAULT_HOST_PASSWORD = "host123"
 DEFAULT_HOST_NAME = "QuizTok Host"
 
-# ---------- Citi branding ----------
-CITI_NAVY = "#003b70"
-CITI_BLUE = "#0088ce"
-CITI_SKY = "#4db4ff"
-CITI_RED = "#e21836"
+# ---------- ABC Company branding ----------
+ABC_NAVY = "#003b70"
+ABC_BLUE = "#0088ce"
+ABC_SKY = "#4db4ff"
+ABC_RED = "#e21836"
 GOLD = "#ffc233"
 TEAL = "#00c9a7"
 

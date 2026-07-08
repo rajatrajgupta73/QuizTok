@@ -74,6 +74,12 @@ def create_game(quiz_id: str, host: str, with_bots: bool = True, bot_count: int 
     if not questions:
         raise ValueError("This quiz has no questions yet — add some in the Question Builder.")
 
+    for q in questions:            # shuffle options so the correct slot varies each game
+        if q["type"] == "mcq":
+            order = random.sample(range(4), 4)
+            q["options"] = [q["options"][i] for i in order]
+            q["correct"] = order.index(q["correct"])
+
     g = {
         "game_id": uuid.uuid4().hex[:10],
         "pin": "".join(random.choices("123456789", k=config.PIN_LENGTH)),
@@ -93,13 +99,34 @@ def create_game(quiz_id: str, host: str, with_bots: bool = True, bot_count: int 
     }
     if with_bots:
         bots = random.sample(config.BOT_ROSTER, k=min(bot_count, len(config.BOT_ROSTER)))
+        pool = _team_pool()
         for i, (name, avatar, skill) in enumerate(bots):
-            team = config.BOT_TEAMS[i % len(config.BOT_TEAMS)]
+            team = pool[i % len(pool)]
             g["players"][name] = _new_player(avatar, is_bot=True, skill=skill, team=team)
     save(g)
     logger.log(host, "admin" if host != "__solo__" else "participant",
                "game_created", f'pin={g["pin"]} quiz={quiz_id} bots={with_bots}')
     return g
+
+
+def append_question_in_lobby(host: str, q: dict) -> tuple[bool, str]:
+    """Add a question to the live lobby game (before LAUNCH). Excel row should already exist."""
+    g = load()
+    if not g:
+        return False, "No live game."
+    if g["host"] != host:
+        return False, "Only the host can add questions."
+    if g["status"] != "LOBBY":
+        return False, "Questions can only be added before the game starts."
+    entry = dict(q)
+    if entry.get("type") == "mcq" and entry.get("options"):
+        order = random.sample(range(4), 4)
+        entry["options"] = [entry["options"][i] for i in order]
+        entry["correct"] = order.index(entry["correct"])
+    g["questions"].append(entry)
+    save(g)
+    logger.log(host, "admin", "live_question_appended", entry.get("question", "")[:80])
+    return True, "Media question added — visible to participants when the game starts."
 
 
 def _new_player(avatar: str, is_bot: bool = False, skill: float = 0.0, team: str = "", soeid: str = "") -> dict:
@@ -119,9 +146,9 @@ def join(pin: str, nick: str, avatar: str, team: str = "", soeid: str = "") -> t
     soeid_upper = soeid.strip().upper()
     nick = nick.strip()
     
-    # Check if SOEID is already in use
+    # Check if SOEID is already in use (skipped when no SOEID is collected)
     for player_data in g["players"].values():
-        if player_data.get("soeid") == soeid_upper:
+        if soeid_upper and player_data.get("soeid") == soeid_upper:
             return False, f"SOEID {soeid_upper} is already in this game — each player needs a unique SOEID."
     
     # Allow duplicate names by appending number if needed
@@ -278,6 +305,27 @@ def has_voted(g: dict, nick: str) -> bool:
     return nick in g["votes"]
 
 
+# ---------------- team chat ----------------
+# Messages live inside live_game.json under g["chat"][team], so the chat is
+# visible only to that team's players and vanishes when the game is finished
+# (finish() drops it) or cleared (file deleted).
+
+def post_chat(nick: str, text: str) -> bool:
+    g = load()
+    if not g or g["status"] == "FINISHED" or nick not in g["players"]:
+        return False
+    team = g["players"][nick]["team"]
+    text = text.strip()
+    if not team or not text:
+        return False
+    room = g.setdefault("chat", {}).setdefault(team, [])
+    room.append({"n": nick, "av": g["players"][nick]["avatar"],
+                 "t": text[:200], "ts": datetime.now().strftime("%H:%M")})
+    del room[:-50]                        # keep the last 50 messages per team
+    save(g)
+    return True
+
+
 def _begin_voting(g: dict) -> None:
     g["status"] = "VOTING"
     g["voting_started"] = time.time()
@@ -364,9 +412,12 @@ def tick(g: dict) -> dict:
             if g["q_index"] + 1 < len(g["questions"]):
                 _begin_question(g, g["q_index"] + 1)
                 changed = True
-            else:
-                # Last question - let user manually finish
-                pass
+            elif g["host"] == "__solo__":
+                actor = next((n for n, p in g["players"].items() if not p["is_bot"]), "__solo__")
+                save(g)
+                finish(actor)
+                return load()
+            # live games: host finishes from host dashboard
 
     if changed:
         save(g)
@@ -446,7 +497,20 @@ def team_leaderboard(g: dict) -> list[dict]:
         t["score"] += p["score"]
         t["votes"] += p["votes_received"]
         t["members"].append(f'{p["avatar"]} {n}')
-    return sorted(teams.values(), key=lambda t: -t["score"])
+    return sorted(teams.values(), key=lambda t: (-t["score"], t["team"].lower()))
+
+
+def _team_pool() -> list[str]:
+    """Registered team names from Excel, falling back to config suggestions."""
+    try:
+        df = storage.get_teams()
+        if not df.empty:
+            names = [str(n).strip() for n in df["name"].dropna() if str(n).strip()]
+            if names:
+                return names
+    except Exception:
+        pass
+    return list(config.TEAM_SUGGESTIONS)
 
 
 def answer_distribution(g: dict) -> list[int]:
@@ -460,16 +524,27 @@ def answer_distribution(g: dict) -> list[int]:
 
 def compute_awards(g: dict) -> dict:
     stats = []
+    mid = max(1, len(g["questions"]) // 2)
     for n, p in g["players"].items():
         answered = [a for a in p["answers"] if a["choice"] is not None or a["text"]]
         mcqs = [a for a in p["answers"] if a["correct"] is not None]
         correct = [a for a in mcqs if a["correct"]]
+        times = [a["time_taken"] for a in mcqs]
+        if len(times) >= 2:
+            mean = sum(times) / len(times)
+            time_spread = (sum((t - mean) ** 2 for t in times) / len(times)) ** 0.5
+        else:
+            time_spread = 99.0
+        first_pts = sum(a["points"] for a in p["answers"] if a["q"] < mid)
+        second_pts = sum(a["points"] for a in p["answers"] if a["q"] >= mid)
         stats.append({
             "name": n,
             "avg_time": sum(a["time_taken"] for a in answered) / len(answered) if answered else 99,
             "best_streak": p["best_streak"],
             "accuracy": len(correct) / len(mcqs) if mcqs else 0,
             "votes": p["votes_received"],
+            "comeback": second_pts - first_pts,
+            "time_spread": time_spread,
         })
     if not stats:
         return {}
@@ -477,6 +552,8 @@ def compute_awards(g: dict) -> dict:
         "⚡ Speed Demon": min(stats, key=lambda s: s["avg_time"])["name"],
         "🔥 Longest Streak": max(stats, key=lambda s: s["best_streak"])["name"],
         "🎯 Sharp Shooter": max(stats, key=lambda s: s["accuracy"])["name"],
+        "🎢 Comeback King": max(stats, key=lambda s: s["comeback"])["name"],
+        "📊 Most Consistent": min(stats, key=lambda s: s["time_spread"])["name"],
     }
     if any(s["votes"] > 0 for s in stats):
         awards["🗳️ Crowd Favourite"] = max(stats, key=lambda s: s["votes"])["name"]
@@ -489,6 +566,7 @@ def finish(actor: str) -> None:
         return
     g["awards"] = compute_awards(g)
     g["status"] = "FINISHED"
+    g.pop("chat", None)                   # team chats die with the game
     save(g)
     _persist_results(g)
     logger.log(actor, "host", "game_ended", f'pin={g["pin"]}')
@@ -542,10 +620,35 @@ def _persist_results(g: dict) -> None:
 
 # ---------------- solo demo ----------------
 
-def start_solo_demo(nick: str, avatar: str, team: str = "") -> None:
+def start_solo_demo(nick: str, avatar: str, quiz_id: str, bot_count: int = 6,
+                    team: str = "") -> tuple[bool, str]:
+    """Instant solo-vs-bots game — skips lobby and starts question 1."""
+    live = load()
+    if live and live["status"] not in ("FINISHED",) and live["host"] != "__solo__":
+        return False, "A live hosted game is in progress — join with the PIN or wait for it to finish."
+
     quizzes = storage.get_quizzes()
-    quiz_id = str(quizzes.iloc[0]["quiz_id"])
-    g = create_game(quiz_id, host="__solo__", with_bots=True, bot_count=6)
-    g["players"][nick] = _new_player(avatar, team=team, soeid="")
+    if quizzes.empty:
+        return False, "No quizzes available yet — ask your admin to create one."
+    if quizzes[quizzes["quiz_id"].astype(str) == str(quiz_id)].empty:
+        return False, "That quiz wasn't found — pick another one."
+
+    if live:
+        clear()
+    try:
+        g = create_game(str(quiz_id), host="__solo__", with_bots=True, bot_count=bot_count)
+    except ValueError as e:
+        return False, str(e)
+
+    base_nick = nick.strip()
+    nick = base_nick
+    counter = 2
+    while nick in g["players"]:
+        nick = f"{base_nick} {counter}"
+        counter += 1
+
+    g["players"][nick] = _new_player(avatar, team=team.strip(), soeid="")
     save(g)
     start(nick)
+    logger.log(nick, "participant", "solo_started", f"quiz={quiz_id} bots={bot_count}")
+    return True, nick

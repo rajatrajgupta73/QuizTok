@@ -2,8 +2,9 @@
 import streamlit as st
 
 import config
-from core import game
+from core import domain_knowledge, game
 from ui import components as ui
+from ui import learn_panel
 
 SHAPES = ["▲", "◆", "●", "■"]
 
@@ -13,9 +14,9 @@ def render() -> None:
     g = game.load()
 
     if not g or nick not in g.get("players", {}):
-        st.warning("The game closed. Head back and join again!")
-        if st.button("← Back to Login"):
-            st.session_state.page = "login"
+        st.warning("Session ended. Return to your profile arena.")
+        if st.button("← Back to Profile"):
+            st.session_state.page = "hub"
             st.rerun()
         return
 
@@ -33,26 +34,39 @@ def render() -> None:
 
     me = g["players"][nick]
     q = game.current_q(g)
-    is_controller = g["host"] == "__solo__" or st.session_state.get("role") == "admin"
+    is_solo = g["host"] == "__solo__"
 
-    # Topbar with logout option
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        ui.topbar(ui.pill(f'{me["avatar"]} {nick}'), ui.pill("LIVE", live_dot=True, red=True))
-    with col2:
-        if st.button("🚪 Logout", type="secondary", key="logout_btn"):
-            st.session_state.clear()
-            st.session_state.page = "login"
-            st.rerun()
+    st.markdown('<span class="qt-quiz-scope"></span>', unsafe_allow_html=True)
+
+    if ui.page_header(ui.pill(f'{me["avatar"]} {nick}'), ui.pill("LIVE", live_dot=True, red=True),
+                       logout_label="Logout", logout_key="quiz_logout"):
+        ui.begin_exit_transition("logout")
+        st.rerun()
     
     ui.hud(g["q_index"] + 1, len(g["questions"]), me["streak"], me["score"])
 
-    if g["status"] == "QUESTION":
-        _render_question(g, q, nick)
-    elif g["status"] == "VOTING":
-        _render_voting(g, nick)
-    elif g["status"] == "REVEAL":
-        _render_reveal(g, q, nick, is_controller)
+    # live stats rail (left) · game stage (centre) · team chat (right, live games only)
+    if is_solo:
+        rail_l, stage = st.columns([1.55, 2.45], gap="medium")
+    else:
+        rail_l, stage, rail_r = st.columns([1.55, 1.7, 1.25], gap="medium")
+    with rail_l:
+        st.markdown('<span class="qt-quiz-stats-col"></span>', unsafe_allow_html=True)
+        ui.stats_rail(game.team_leaderboard(g), game.leaderboard(g)[:3], me["team"], nick)
+    if not is_solo:
+        with rail_r:
+            st.markdown('<span class="qt-quiz-chat-col"></span>', unsafe_allow_html=True)
+            ui.team_chat_rail(g, nick)
+    with stage:
+        st.markdown('<span class="qt-quiz-stage-col"></span>', unsafe_allow_html=True)
+        if g["status"] == "QUESTION":
+            _render_question(g, q, nick)
+        elif g["status"] == "VOTING":
+            _render_voting(g, nick)
+        elif g["status"] == "REVEAL":
+            _render_reveal(g, q, nick)
+
+    learn_panel.domain_drawer_inject(g.get("quiz_title", ""))
 
 
 # ---------------- QUESTION ----------------
@@ -60,9 +74,8 @@ def render() -> None:
 def _render_question(g: dict, q: dict, nick: str) -> None:
     tl = game.time_left(g)
     ui.timer_ring(tl, q["timer"])
-    kind = "🗳️ SUBJECTIVE — BEST ANSWERS WIN VOTES" if q["type"] == "subjective" \
-        else f'MCQ · {q["points"]} PTS · SPEED BONUS ON'
-    ui.question_text(kind, q["question"])
+    kind = "🗳️ SUBJECTIVE — BEST ANSWERS WIN VOTES" if q["type"] == "subjective" else ""
+    ui.question_stage(kind, q)
 
     answered = game.has_answered(g, nick)
 
@@ -103,8 +116,7 @@ def _render_question(g: dict, q: dict, nick: str) -> None:
 def _render_voting(g: dict, nick: str) -> None:
     tl = game.time_left(g)
     ui.timer_ring(tl, config.VOTING_TIMER_SEC)
-    ui.question_text("🗳️ VOTE FOR THE BEST ANSWER — NOT YOUR OWN 😄",
-                     game.current_q(g)["question"])
+    ui.question_stage("🗳️ VOTE FOR THE BEST ANSWER — NOT YOUR OWN 😄", game.current_q(g))
 
     voted = game.has_voted(g, nick)
     answers = game.current_answers(g)
@@ -131,19 +143,28 @@ def _render_voting(g: dict, nick: str) -> None:
 
 # ---------------- REVEAL ----------------
 
-def _render_reveal(g: dict, q: dict, nick: str, is_controller: bool) -> None:
+def _render_reveal(g: dict, q: dict, nick: str) -> None:
     me = g["players"][nick]
     rec = next((a for a in me["answers"] if a["q"] == g["q_index"]), None)
 
+    if q.get("media_type"):
+        ui.question_media(q)
+
     if q["type"] == "mcq":
         good = bool(rec and rec["correct"])
+        correct_idx = q["correct"]
+        correct_text = q["options"][correct_idx]
+        domain_knowledge.track_question_outcome(nick, q["question"], good if rec else False)
         if good:
             ui.verdict(True, "NAILED IT! 🎯",
-                       f'+<b>{rec["points"]:,} pts</b> · streak 🔥{me["streak"]}')
+                       f'+<b>{rec["points"]:,} pts</b> · streak 🔥{me["streak"]}',
+                       answer=correct_text, answer_idx=correct_idx)
+            ui.points_pop(rec["points"])
         else:
-            picked = "time ran out ⏰" if not rec or rec["choice"] is None else "wrong pick 💥"
+            picked = "Time ran out ⏰" if not rec or rec["choice"] is None else "Wrong pick 💥"
             ui.verdict(False, "OOPS!",
-                       f'{picked} — the answer was <b>{q["options"][q["correct"]]}</b>')
+                       f'{picked} — streak reset, comeback time!',
+                       answer=correct_text, answer_idx=correct_idx)
         ui.distribution_bars(game.answer_distribution(g), q["options"], q["correct"])
     else:
         votes = rec["votes"] if rec else 0
@@ -161,17 +182,10 @@ def _render_reveal(g: dict, q: dict, nick: str, is_controller: bool) -> None:
 
     last = g["q_index"] + 1 >= len(g["questions"])
 
-    # Self-contained JS countdown (3→2→1→GO! + sound) — only when not the last question
     if not last:
         ui.countdown_popup(g["q_index"], g.get("reveal_started", 0.0))
+    elif g["host"] != "__solo__":
+        st.markdown('<div class="qt-sub" style="text-align:center;margin-top:8px">'
+                    'Host is wrapping up the game… 🎬</div>', unsafe_allow_html=True)
 
-    if is_controller:
-        label = "See Final Results 🎉" if last else "Next Question ▶"
-        if st.button(label, key="gold_next", use_container_width=True):
-            game.next_question(nick)
-            st.rerun()
-    else:
-        if last:
-            st.markdown('<div class="qt-sub" style="text-align:center;margin-top:8px">'
-                        'Host is lining up the next round… 🎬</div>', unsafe_allow_html=True)
-        ui.autorefresh(0.5)
+    ui.autorefresh(0.5)

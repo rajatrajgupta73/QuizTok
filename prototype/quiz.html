@@ -10,11 +10,11 @@
 
   /* HUD */
   .hud { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; flex-wrap: wrap; }
-  .hud .qno { font-family: 'Baloo 2', cursive; font-size: 20px; font-weight: 800; color: var(--citi-sky); }
+  .hud .qno { font-family: 'Baloo 2', cursive; font-size: 20px; font-weight: 800; color: var(--abc-sky); }
   .progress { flex: 1; height: 12px; background: rgba(0,0,0,0.35); border-radius: 99px; overflow: hidden; min-width: 140px; }
   .progress .fill {
     height: 100%; width: 30%; border-radius: 99px;
-    background: linear-gradient(90deg, var(--citi-blue), var(--citi-sky));
+    background: linear-gradient(90deg, var(--abc-blue), var(--abc-sky));
     transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
     box-shadow: 0 0 14px rgba(77,180,255,0.6);
   }
@@ -30,7 +30,7 @@
   /* question card + timer */
   .qcard { padding: 40px 44px; text-align: center; position: relative; margin-bottom: 26px; }
   .qcard .qtext { font-size: 30px; font-weight: 700; line-height: 1.4; max-width: 760px; margin: 0 auto; }
-  .qcard .cat { font-size: 12.5px; letter-spacing: 2.5px; color: var(--citi-sky); font-weight: 700; margin-bottom: 14px; }
+  .qcard .cat { font-size: 12.5px; letter-spacing: 2.5px; color: var(--abc-sky); font-weight: 700; margin-bottom: 14px; }
 
   .timer-wrap { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); }
   .timer {
@@ -41,11 +41,11 @@
   .timer svg { position: absolute; inset: -4px; transform: rotate(-90deg); }
   .timer circle { fill: none; stroke-width: 7; stroke-linecap: round; }
   .timer .track { stroke: rgba(255,255,255,0.1); }
-  .timer .arc { stroke: var(--citi-sky); stroke-dasharray: 289; transition: stroke-dashoffset 1s linear, stroke 0.4s; }
+  .timer .arc { stroke: var(--abc-sky); stroke-dasharray: 289; transition: stroke-dashoffset 1s linear, stroke 0.4s; }
   .timer .num { font-family: 'Baloo 2', cursive; font-size: 32px; font-weight: 800; }
-  .timer.danger .arc { stroke: var(--citi-red); }
+  .timer.danger .arc { stroke: var(--abc-red); }
   .timer.danger { animation: shake 0.5s infinite; }
-  .timer.danger .num { color: var(--citi-red); }
+  .timer.danger .num { color: var(--abc-red); }
 
   /* answers */
   .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
@@ -92,9 +92,22 @@
   .verdict .box { text-align: center; animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
   .verdict .big { font-family: 'Baloo 2', cursive; font-size: 68px; font-weight: 800; }
   .verdict .big.good { color: var(--teal); text-shadow: 0 0 50px rgba(0,201,167,0.6); }
-  .verdict .big.bad { color: var(--citi-red); text-shadow: 0 0 50px rgba(226,24,54,0.5); }
+  .verdict .big.bad { color: var(--abc-red); text-shadow: 0 0 50px rgba(226,24,54,0.5); }
   .verdict .sub { color: var(--text-dim); font-size: 17px; margin: 10px 0 26px; }
   .verdict .sub b { color: var(--gold); }
+
+  .domain-fab {
+    position: fixed; bottom: 24px; right: 24px; z-index: 50;
+    background: linear-gradient(135deg, var(--abc-blue), var(--abc-navy));
+    color: #fff; border: 1px solid rgba(77,180,255,.4); border-radius: 999px;
+    padding: 12px 20px; font-weight: 700; font-size: 13px; cursor: pointer;
+    box-shadow: 0 8px 28px rgba(0,136,206,.45);
+  }
+  .domain-drawer { display: none; position: fixed; inset: 0; z-index: 100; }
+  .domain-drawer.open { display: block; }
+  .domain-drawer .backdrop { position: absolute; inset: 0; background: rgba(1,8,17,.65); }
+  .domain-drawer .panel { position: absolute; top: 0; right: 0; width: min(360px, 90vw); height: 100%;
+    background: var(--bg-mid); border-left: 1px solid var(--stroke); padding: 24px 20px; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -105,7 +118,7 @@
   <div class="left">
     <span class="brand">QuizTok</span>
     <div class="divider"></div>
-    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="citi"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
+    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="abc"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
   </div>
   <div class="right">
     <span class="pill">🦊 <span id="hudNick">QuizNinja</span></span>
@@ -128,8 +141,7 @@
         <span class="num" id="tnum">20</span>
       </div>
     </div>
-    <div class="cat">CITI TRIVIA · 1000 PTS · SPEED BONUS ON</div>
-    <div class="qtext" id="qtext">In which year was Citi (then City Bank of New York) founded?</div>
+    <div class="qtext" id="qtext">In which year was ABC Company (then City Bank of New York) founded?</div>
   </div>
 
   <div class="answers" id="answers">
@@ -137,6 +149,22 @@
     <button class="ans" data-ok="1"><span class="shape">◆</span> 1812</button>
     <button class="ans" data-ok="0"><span class="shape">●</span> 1865</button>
     <button class="ans" data-ok="0"><span class="shape">■</span> 1901</button>
+  </div>
+</div>
+
+<button type="button" class="domain-fab" onclick="document.getElementById('domainDrawer').classList.add('open')">📚 Domain Guide</button>
+<div class="domain-drawer" id="domainDrawer">
+  <div class="backdrop" onclick="this.parentElement.classList.remove('open')"></div>
+  <div class="panel">
+    <h3 style="font-family:'Baloo 2',cursive;margin-bottom:8px">📚 Domain Guide</h3>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">KPI & Metrics + IVR</p>
+    <div style="font-size:13px;line-height:1.6">
+      <b style="color:var(--gold)">FCR</b> — First Contact Resolution<br>
+      <span style="color:var(--text-dim);font-size:11px">Share of issues fully resolved in the first contact</span>
+      <hr style="border:none;border-top:1px dashed var(--stroke);margin:12px 0">
+      <b style="color:var(--gold)">IVR</b> — Interactive Voice Response<br>
+      <span style="color:var(--text-dim);font-size:11px">Automated phone menu for callers</span>
+    </div>
   </div>
 </div>
 

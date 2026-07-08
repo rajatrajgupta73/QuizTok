@@ -44,7 +44,7 @@ def ensure_default_host() -> None:
 
 
 def verify_host(email: str, password: str) -> tuple[bool, str]:
-    """Returns (ok, host display name). Only host@citi.com is a valid host login."""
+    """Returns (ok, host display name). Only host@abc.com is a valid host login."""
     if email.strip().lower() != config.DEFAULT_HOST_EMAIL.lower():
         logger.log(email, "host", "login_failed")
         return False, ""

@@ -19,14 +19,14 @@
     animation: glowPulse 2.4s ease-in-out infinite; border-radius: 20px; display: inline-block; padding: 0 24px;
   }
   .pin-banner .joinline { color: var(--text-dim); font-size: 14.5px; }
-  .pin-banner .joinline b { color: var(--citi-sky); }
+  .pin-banner .joinline b { color: var(--abc-sky); }
 
   .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 26px; align-items: start; }
   @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
 
   .panel { padding: 28px; }
   .panel h3 { font-family: 'Baloo 2', cursive; font-size: 22px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
-  .panel h3 .count { font-size: 14px; background: var(--citi-red); color: #fff; border-radius: 999px; padding: 3px 12px; animation: pop 0.4s both; }
+  .panel h3 .count { font-size: 14px; background: var(--abc-red); color: #fff; border-radius: 999px; padding: 3px 12px; animation: pop 0.4s both; }
 
   /* avatar picker */
   .avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
@@ -38,7 +38,7 @@
   }
   .avatar-pick:hover { transform: translateY(-5px) rotate(-6deg) scale(1.08); }
   .avatar-pick.sel {
-    border-color: var(--citi-sky); background: rgba(0,136,206,0.25);
+    border-color: var(--abc-sky); background: rgba(0,136,206,0.25);
     animation: wiggle 0.5s; box-shadow: 0 0 24px rgba(77,180,255,0.4);
   }
 
@@ -65,10 +65,17 @@
   .waiting {
     margin-top: 26px; text-align: center; color: var(--text-dim); font-size: 15px;
   }
-  .dots span { animation: bounce 1.2s ease-in-out infinite; display: inline-block; font-size: 24px; color: var(--citi-sky); }
+  .dots span { animation: bounce 1.2s ease-in-out infinite; display: inline-block; font-size: 24px; color: var(--abc-sky); }
   .dots span:nth-child(2) { animation-delay: 0.15s; } .dots span:nth-child(3) { animation-delay: 0.3s; }
 
   .rocket-btn { width: 100%; margin-top: 20px; }
+
+  /* Domain Academy */
+  .academy { margin-top: 28px; padding: 24px; }
+  .academy h3 { font-family: 'Baloo 2', cursive; font-size: 20px; margin-bottom: 12px; }
+  .academy-tree details { margin: 6px 0; font-size: 13px; }
+  .academy-tree summary { cursor: pointer; font-weight: 600; color: var(--abc-sky); }
+  .term-row { padding: 4px 0 4px 16px; color: var(--text-dim); font-size: 12px; }
 </style>
 </head>
 <body>
@@ -79,7 +86,7 @@
   <div class="left">
     <span class="brand">QuizTok</span>
     <div class="divider"></div>
-    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="citi"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
+    <svg viewBox="0 0 300 195" width="52" height="34" style="vertical-align:middle" aria-label="abc"><g transform="matrix(2.4760713,0,0,2.4760713,-2.9521334,-2.9521466)"><path d="m38.400442,64.214842-0.213828,0.206921c-3.446638,3.511502-7.435859,5.372563-11.546423,5.372563-8.580217,0-14.808582-6.436766-14.808582-15.318118,0-8.86532,6.228365-15.311212,14.808582-15.311212,4.110564,0,8.099785,1.868707,11.546423,5.38958l0.213828,0.213088,5.518073-6.672297-0.147484-0.181026c-4.589023-5.422875-10.095258-8.06279-16.86448-8.06279-6.792652,0-13.002027,2.286003-17.4771072,6.408651-4.8622878,4.464475-7.4294475,10.760663-7.4294475,18.216006,0,7.451645,2.5671597,13.76337,7.4294475,18.229079,4.4750802,4.141638,10.6844552,6.415063,17.4771072,6.415063,6.769222,0,12.275457-2.638436,16.86448-8.063531l0.147484-0.168447-5.518073-6.67353z" fill-rule="nonzero" fill="#ffffff"/><path d="m49.494547,78.212262,9.748252,0,0-47.58753-9.748252,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="m97.427357,67.864702c-2.600701,1.583604-5.021116,2.379722-7.194656,2.379722-3.149451,0-4.572746-1.662278-4.572746-5.364917v-25.250109h9.928044v-8.961259h-9.928044v-14.807103l-9.554648,5.113356v9.693747h-8.242583v8.961259h8.242583v26.860842c0,7.318218,4.334995,12.317631,10.806043,12.447604,4.393939,0.08607,7.042733-1.222785,8.651493-2.179705l0.09421-0.07004,2.346921-9.17558-0.576619,0.352186z" fill-rule="nonzero" fill="#ffffff"/><path d="m105.50125,78.212262,9.75466,0,0-47.58753-9.75466,0,0,47.58753z" fill-rule="nonzero" fill="#ffffff"/><path d="M121.09485,22.1809c-8.92353-12.6397281-23.742961-20.1808984-38.820616-20.1808984-15.071489,0-29.893883,7.5411703-38.80261,20.1808984l-0.457003,0.650361h11.235917l0.124547-0.134906c7.647468-7.89311,17.63051-12.067303,27.899149-12.067303,10.269872,0,20.250946,4.174193,27.913206,12.067303l0.1243,0.134906h11.23247l-0.44936-0.650361z" fill-rule="evenodd" fill="#d9261c"/></g></svg>
   </div>
   <div class="right">
     <span class="pill"><span class="dot"></span> Lobby open</span>
@@ -92,7 +99,7 @@
   <div class="card pin-banner rise">
     <div class="label">GAME PIN</div>
     <div class="pin" id="pinShow">482913</div>
-    <div class="joinline">Join at <b>quiztok.citi</b> · Friday Team Fun · <b>“Guess the GIF + Citi Trivia”</b></div>
+    <div class="joinline">Join at <b>quiztok.abc</b> · Friday Team Fun · <b>“Guess the GIF + ABC Company Trivia”</b></div>
   </div>
 
   <div class="grid">
@@ -117,6 +124,30 @@
         Waiting for host to launch
         <div class="dots"><span>●</span><span>●</span><span>●</span></div>
       </div>
+    </div>
+  </div>
+
+  <div class="card panel rise academy">
+    <h3>📚 Ops Academy — know it before you quiz it</h3>
+    <p class="joinline" style="margin-bottom:14px">Browse Banking & Operations glossary · track mastery · prep for live battles</p>
+    <div class="academy-tree">
+      <details open>
+        <summary>🏦 Banking Operations</summary>
+        <details open><summary>💳 Payments</summary>
+          <div class="term-row">UPI — Unified Payments Interface</div>
+          <div class="term-row">RTGS — Real Time Gross Settlement</div>
+          <div class="term-row">NEFT — National Electronic Funds Transfer</div>
+        </details>
+        <details><summary>🛡️ Compliance</summary>
+          <div class="term-row">KYC — Know Your Customer</div>
+          <div class="term-row">AML — Anti-Money Laundering</div>
+        </details>
+      </details>
+      <details>
+        <summary>📊 KPI & Metrics</summary>
+        <div class="term-row">FCR — First Contact Resolution</div>
+        <div class="term-row">AHT — Average Handle Time</div>
+      </details>
     </div>
   </div>
 </div>

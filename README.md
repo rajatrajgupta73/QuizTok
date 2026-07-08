@@ -1,4 +1,4 @@
-# QuizTok 🎮 — Citi Team Fun Quiz Platform
+# QuizTok 🎮 — ABC Company Team Fun Quiz Platform
 
 <div align="center">
 
@@ -10,7 +10,7 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.39+-red.svg)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-*Citi-branded, Kahoot-style energy with 2,000-question banking-domain library*
+*ABC Company-branded, Kahoot-style energy with 2,000-question banking-domain library*
 
 </div>
 
@@ -26,7 +26,7 @@
 - **Bot Players**: Practice with AI opponents when playing solo
 
 ### 🎨 User Experience
-- **Citi Brand Colors**: Professional design with Citi Blue (`#003b70`), Bright Blue (`#0088ce`), Red Arc (`#e21836`)
+- **ABC Company Brand Colors**: Professional design with ABC Company Blue (`#003b70`), Bright Blue (`#0088ce`), Red Arc (`#e21836`)
 - **Smooth Animations**: CSS keyframe animations, confetti effects, countdown timers
 - **Avatar System**: Choose from 8+ emojis for player representation
 - **Real-time Lobby**: Live participant list with avatar selection
@@ -81,8 +81,8 @@ streamlit run app.py
 The app will open automatically at **http://localhost:8501**
 
 ### Default Credentials
-- **Admin Email**: `admin@citi.com`
-- **Admin Password**: `citi123`
+- **Admin Email**: `admin@abc.com`
+- **Admin Password**: `abc123`
 
 ---
 
@@ -143,7 +143,7 @@ QuizTok/
 │   └── config.toml            # Streamlit theme configuration
 │
 ├── assets/
-│   └── citi_logo.svg          # Citi logo for branding
+│   └── citi_logo.svg          # ABC Company logo for branding
 │
 ├── core/                       # Business Logic Layer (No UI)
 │   ├── __init__.py
@@ -156,7 +156,7 @@ QuizTok/
 │
 ├── ui/                         # Presentation Layer (Streamlit)
 │   ├── __init__.py
-│   ├── theme.py               # CSS injection, animations, Citi branding
+│   ├── theme.py               # CSS injection, animations, ABC Company branding
 │   ├── components.py          # Reusable UI components (logo, podium, timer)
 │   ├── login_page.py          # Participant join + admin sign-in
 │   ├── lobby_page.py          # Pre-game lobby with live participants
@@ -276,7 +276,7 @@ Edit `config.py` to customize:
 
 ### Branding
 ```python
-CITI_BLUE = "#003b70"
+ABC_BLUE = "#003b70"
 BRIGHT_BLUE = "#0088ce"
 RED_ARC = "#e21836"
 ```
@@ -371,7 +371,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - Inspired by Kahoot! gameplay mechanics
-- Built for Citi team engagement and training
+- Built for ABC Company team engagement and training
 - Designed for offline banking domain knowledge assessment
 
 ---
@@ -386,7 +386,7 @@ For issues, questions, or suggestions:
 
 <div align="center">
 
-**Made with ❤️ for Citi Team Learning**
+**Made with ❤️ for ABC Company Team Learning**
 
 ⭐ Star this repo if you find it helpful!
 

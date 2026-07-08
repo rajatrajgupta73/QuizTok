@@ -1,9 +1,9 @@
-# QuizTok — Citi-branded team quiz app (Streamlit)
+# QuizTok — ABC Company-branded team quiz app (Streamlit)
 
-Kahoot-style live quiz platform for Citi team events. 100% local: Excel files as the database, no internet required at runtime (Google Fonts load via CSS `@import` when online; falls back to system fonts offline).
+Kahoot-style live quiz platform for ABC Company team events. 100% local: Excel files as the database, no internet required at runtime (Google Fonts load via CSS `@import` when online; falls back to system fonts offline).
 
 **Run:** `streamlit run app.py` (from this directory) → http://localhost:8501
-**Default admin:** admin@citi.com / citi123 (demo credential, shown on the login page)
+**Default admin:** admin@abc.com / abc123 (demo credential, shown on the login page)
 
 **📚 CODE INDEX:** See `CODE_INDEX.md` for complete file/function reference, edit scenarios, and dependency map. Use it to quickly locate code when making queries or edits.
 
@@ -45,8 +45,8 @@ The visual target is `prototype/` (index/lobby/quiz/leaderboard/results/admin/ho
 
 - Fonts: **Poppins** body, **Baloo 2** for display numbers/headings (PIN, timer,
   scores, podium, verdict, h3 panels). Loaded via `@import` inside the `<style>` block.
-- Palette: citi-navy `#003b70`, citi-blue `#0088ce`, citi-sky `#4db4ff`,
-  citi-red `#e21836`, gold `#ffc233`, teal `#00c9a7`; glass cards
+- Palette: abc-navy `#003b70`, abc-blue `#0088ce`, abc-sky `#4db4ff`,
+  abc-red `#e21836`, gold `#ffc233`, teal `#00c9a7`; glass cards
   `rgba(255,255,255,.06)` + 1px stroke + blur.
 - Button variants via Streamlit container keys: `st-key-ans0..3` (Kahoot answer
   colors), `st-key-red*`, `st-key-gold*`, `st-key-vote*`, `st-key-avat*`,
@@ -66,3 +66,9 @@ The visual target is `prototype/` (index/lobby/quiz/leaderboard/results/admin/ho
   and reach the parent page via `window.parent`.
 - `ui.autorefresh` blocks the script run (sleep+rerun) — only call it as the last
   statement of a render path.
+
+## Live-game extras (added 2026-07)
+- Team chat: g["chat"][team] inside live_game.json (game.post_chat / components.team_chat_rail); wiped by finish() and clear()
+- Participant quiz screen: 3 columns — stats rail (teams + top3) | stage | team chat; lobby also has chat
+- Page-switch ghost fix: app.py sets "_settle" on page change; components.autorefresh then completes one run (hidden qt_settle button clicked by JS) so Streamlit prunes stale DOM
+- storage.delete_quiz(quiz_id); host live screen has Command Center / Change-New-Game nav buttons
